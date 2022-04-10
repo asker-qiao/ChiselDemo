@@ -1,0 +1,12 @@
+.bloop/
+.bsp/
+.idea/
+.metals/
+.vscode/
+out/
+project/
+target/
+# chiseltest out
+test_run_dir/
+
+docs/

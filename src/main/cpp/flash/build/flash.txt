@@ -1,0 +1,93 @@
+
+/home51/yangye/projects/xs/flash/build/flash.elf:     file format elf64-littleriscv
+
+
+Disassembly of section .text:
+
+0000000010000000 <_start>:
+    10000000:	00000093          	li	ra,0
+    10000004:	00000193          	li	gp,0
+    10000008:	00000213          	li	tp,0
+    1000000c:	00000293          	li	t0,0
+    10000010:	00000313          	li	t1,0
+    10000014:	00000393          	li	t2,0
+    10000018:	00000413          	li	s0,0
+    1000001c:	00000493          	li	s1,0
+    10000020:	00000513          	li	a0,0
+    10000024:	00000593          	li	a1,0
+    10000028:	00000613          	li	a2,0
+    1000002c:	00000693          	li	a3,0
+    10000030:	00000713          	li	a4,0
+    10000034:	00000793          	li	a5,0
+    10000038:	00000813          	li	a6,0
+    1000003c:	00000893          	li	a7,0
+    10000040:	00000913          	li	s2,0
+    10000044:	00000993          	li	s3,0
+    10000048:	00000a13          	li	s4,0
+    1000004c:	00000a93          	li	s5,0
+    10000050:	00000b13          	li	s6,0
+    10000054:	00000b93          	li	s7,0
+    10000058:	00000c13          	li	s8,0
+    1000005c:	00000c93          	li	s9,0
+    10000060:	00000d13          	li	s10,0
+    10000064:	00000d93          	li	s11,0
+    10000068:	00000e13          	li	t3,0
+    1000006c:	00000e93          	li	t4,0
+    10000070:	00000f13          	li	t5,0
+    10000074:	00000f93          	li	t6,0
+    10000078:	00100293          	li	t0,1
+    1000007c:	08800313          	li	t1,136
+    10000080:	00d29293          	slli	t0,t0,0xd
+    10000084:	30132073          	csrs	misa,t1
+    10000088:	3002a073          	csrs	mstatus,t0
+    1000008c:	f2000053          	fmv.d.x	ft0,zero
+    10000090:	f20000d3          	fmv.d.x	ft1,zero
+    10000094:	f20001d3          	fmv.d.x	ft3,zero
+    10000098:	f2000253          	fmv.d.x	ft4,zero
+    1000009c:	f20002d3          	fmv.d.x	ft5,zero
+    100000a0:	f2000353          	fmv.d.x	ft6,zero
+    100000a4:	f20003d3          	fmv.d.x	ft7,zero
+    100000a8:	f2000453          	fmv.d.x	fs0,zero
+    100000ac:	f20004d3          	fmv.d.x	fs1,zero
+    100000b0:	f2000553          	fmv.d.x	fa0,zero
+    100000b4:	f20005d3          	fmv.d.x	fa1,zero
+    100000b8:	f2000653          	fmv.d.x	fa2,zero
+    100000bc:	f20006d3          	fmv.d.x	fa3,zero
+    100000c0:	f2000753          	fmv.d.x	fa4,zero
+    100000c4:	f20007d3          	fmv.d.x	fa5,zero
+    100000c8:	f2000853          	fmv.d.x	fa6,zero
+    100000cc:	f20008d3          	fmv.d.x	fa7,zero
+    100000d0:	f2000953          	fmv.d.x	fs2,zero
+    100000d4:	f20009d3          	fmv.d.x	fs3,zero
+    100000d8:	f2000a53          	fmv.d.x	fs4,zero
+    100000dc:	f2000ad3          	fmv.d.x	fs5,zero
+    100000e0:	f2000b53          	fmv.d.x	fs6,zero
+    100000e4:	f2000bd3          	fmv.d.x	fs7,zero
+    100000e8:	f2000c53          	fmv.d.x	fs8,zero
+    100000ec:	f2000cd3          	fmv.d.x	fs9,zero
+    100000f0:	f2000d53          	fmv.d.x	fs10,zero
+    100000f4:	f2000dd3          	fmv.d.x	fs11,zero
+    100000f8:	f2000e53          	fmv.d.x	ft8,zero
+    100000fc:	f2000ed3          	fmv.d.x	ft9,zero
+    10000100:	f2000f53          	fmv.d.x	ft10,zero
+    10000104:	f2000fd3          	fmv.d.x	ft11,zero
+    10000108:	3002b073          	csrc	mstatus,t0
+    1000010c:	30133073          	csrc	misa,t1
+    10000110:	00000293          	li	t0,0
+    10000114:	00000313          	li	t1,0
+    10000118:	00001117          	auipc	sp,0x1
+    1000011c:	ef013103          	ld	sp,-272(sp) # 10001008 <_GLOBAL_OFFSET_TABLE_+0x8>
+    10000120:	010000ef          	jal	ra,10000130 <main>
+    10000124:	0010041b          	addiw	s0,zero,1
+    10000128:	01f41413          	slli	s0,s0,0x1f
+    1000012c:	00040067          	jr	s0
+
+0000000010000130 <main>:
+    10000130:	ff010113          	addi	sp,sp,-16
+    10000134:	00813423          	sd	s0,8(sp)
+    10000138:	01010413          	addi	s0,sp,16
+    1000013c:	00000793          	li	a5,0
+    10000140:	00078513          	mv	a0,a5
+    10000144:	00813403          	ld	s0,8(sp)
+    10000148:	01010113          	addi	sp,sp,16
+    1000014c:	00008067          	ret
