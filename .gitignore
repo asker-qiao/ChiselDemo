@@ -10,3 +10,5 @@ target/
 test_run_dir/
 
 docs/
+
+*.vcd
