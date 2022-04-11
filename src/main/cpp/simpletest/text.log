@@ -1,8 +1,0 @@
-Using built-in specs.
-COLLECT_GCC=riscv64-linux-gnu-gcc
-COLLECT_LTO_WRAPPER=/usr/lib/gcc-cross/riscv64-linux-gnu/10/lto-wrapper
-Target: riscv64-linux-gnu
-Configured with: ../src/configure -v --with-pkgversion='Ubuntu 10.3.0-1ubuntu1~20.04' --with-bugurl=file:///usr/share/doc/gcc-10/README.Bugs --enable-languages=c,ada,c++,go,d,fortran,objc,obj-c++,m2 --prefix=/usr --with-gcc-major-version-only --program-suffix=-10 --enable-shared --enable-linker-build-id --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --libdir=/usr/lib --enable-nls --with-sysroot=/ --enable-clocale=gnu --enable-libstdcxx-debug --enable-libstdcxx-time=yes --with-default-libstdcxx-abi=new --enable-gnu-unique-object --disable-libitm --disable-libsanitizer --disable-libquadmath --disable-libquadmath-support --enable-plugin --enable-default-pie --with-system-zlib --enable-libphobos-checking=release --without-target-system-zlib --enable-multiarch --disable-werror --disable-multilib --with-arch=rv64imafdc --with-abi=lp64d --enable-checking=release --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=riscv64-linux-gnu --program-prefix=riscv64-linux-gnu- --includedir=/usr/riscv64-linux-gnu/include --with-build-config=bootstrap-lto-lean --enable-link-mutex
-Thread model: posix
-Supported LTO compression algorithms: zlib
-gcc version 10.3.0 (Ubuntu 10.3.0-1ubuntu1~20.04) 
