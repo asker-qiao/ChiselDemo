@@ -26,12 +26,6 @@ class SimTop extends Module {
     memory_size = 256 * 1024 * 1024
   )
 
-  def get_bus_type(_type: String) = {
-    _type match {
-      case "2r1w" => new SimpleBus2r1w()
-    }
-  }
-
   val bus_type = get_bus_type(sim_config.memory_type)
 
   val soc = Module(new SoC(io_type = bus_type))

@@ -85,11 +85,3 @@ class RAM[T <: Data]
   rdata(0) := Cat(rdata_0.reverse)
   rdata(1) := Cat(rdata_1.reverse)
 }
-
-object MainMemory {
-  def apply(mem_config: String) = {
-    mem_config match {
-      case "2r1w" => Module(new RAM(io_type = new SimpleBus2r1w))
-    }
-  }
-}
