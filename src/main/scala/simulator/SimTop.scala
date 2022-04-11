@@ -20,16 +20,9 @@ class SimTop extends Module {
   })
   io.uart := DontCare
   
-  
-  val sim_config = SimulatorConfig(
-    memory_type = "2r1w",
-    memory_size = 256 * 1024 * 1024
-  )
 
-  val bus_type = get_bus_type(sim_config.memory_type)
-
-  val soc = Module(new SoC(io_type = bus_type))
-  val memory = Module(new RAM(io_type = new SimpleBus2r1w()))
+  val soc = Module(new SoC(io_type = new SimpleBus))
+  val memory = Module(new RAM(io_type = new SimpleBus()SimpleBus))
 
   soc.io.mem <> memory.io.in
 }
