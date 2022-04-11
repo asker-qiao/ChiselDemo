@@ -24,8 +24,8 @@ class SimpleBusInstrResp extends Bundle {
 }
 
 class InstrFetchBus extends Bundle {
-  val req   = Decoupled(new SimpleReadAddr)
-  val resp  = Flipped(DecoupledIO(new SimpleReadData))
+  val req   = Decoupled(new SimpleBusInstrReq)
+  val resp  = Flipped(DecoupledIO(new SimpleBusInstrResp))
 }
 
 class SimpleBusAccessMemReq extends Bundle {
