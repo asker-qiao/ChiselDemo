@@ -22,7 +22,7 @@ class SimTop extends Module {
   
 
   val soc = Module(new SoC(io_type = new SimpleBus))
-  val memory = Module(new RAM(io_type = new SimpleBus()SimpleBus))
+  val memory = Module(new RAM(io_type = new SimpleBus()))
 
   soc.io.mem <> memory.io.in
 }
