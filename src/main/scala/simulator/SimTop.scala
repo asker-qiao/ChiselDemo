@@ -37,7 +37,7 @@ class SimTop extends Module {
   val soc = Module(new SoC(io_type = bus_type))
   val memory = Module(new RAM(io_type = new SimpleBus2r1w()))
 
-  soc.io.mem <> memory.io.rw
+  soc.io.mem <> memory.io.in
 }
 
 object GenVerilog extends App {

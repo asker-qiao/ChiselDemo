@@ -2,17 +2,17 @@ package cpu
 
 import chisel3._
 import chisel3.util._
+import bus._
 
 class RiscvCore extends Module {
   val io = IO(new Bundle {
-    val imem = new InstrFetchBus
-    val dmem = new AccessMemBus
+    val mem = new SimpleBus
   })
 
   val cpu = Module(new StageFiveCPU)
   // TODO: add L1 Cache here in the furture
 
   // 
-  io.imem <> cpu.io.imem
-  io.dmem <> cpu.io.dmem
+  io.mem.imem <> cpu.io.imem
+  io.mem.dmem <> cpu.io.dmem
 }

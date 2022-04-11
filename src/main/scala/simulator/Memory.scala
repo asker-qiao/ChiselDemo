@@ -32,19 +32,19 @@ class RAM[T <: Data]
 
   val io = IO(new Bundle() {
     //val rw = if (io_type == null) null else io_type.cloneType
-    val rw = Flipped(new SimpleBus2r1w())
+    val in = Flipped(new SimpleBus())
   })
 
-  io.rw.ra.map(_.ready := true.B)
-  io.rw.wd.ready := true.B
-  io.rw.rd.zip(io.rw.ra).map{ case (d, a) => d.valid := a.valid}
+  io.in.imem.req.ready := true.B
+  io.in.imem.resp.valid := io.in.imem.req.valid
+
+  io.in.dmem.req.ready := true.B
+  io.in.dmem.resp.valid := io.in.dmem.req.valid
 
   val offsetBits = log2Up(memByte)
   val offsetMask = (1 << offsetBits) - 1
   val split = beatBytes / 8
   val bankByte = memByte / split
-
-  println("log2Ceil(split)="+log2Ceil(split))
 
   def index(addr: UInt) = ((addr & offsetMask.U) >> log2Ceil(beatBytes)).asUInt()
   def inRange(idx: UInt) = idx < (memByte / 8).U
@@ -56,16 +56,17 @@ class RAM[T <: Data]
   val wstrb = Wire(UInt())
   val wen   = Wire(Bool())
 
-  for (i <- 0 until 2) {
-    rIdx(i) := index(io.rw.ra(i).bits.addr)
-    //printf("rIdx(%d)=%x, addr=%x\n", i.U, rIdx(i), io.rw.ra(i).bits.addr)
-    io.rw.rd(i).bits.data := rdata(i)
-  }
+  // read event
+  rIdx(0) := index(io.in.imem.req.bits.addr)
+  rIdx(1) := index(io.in.dmem.req.bits.addr)
+  io.in.imem.resp.bits.data := rdata(0)
+  io.in.dmem.resp.bits.rdata := rdata(1)
 
-  wIdx  := index(io.rw.wd.bits.addr)
-  wdata := io.rw.wd.bits.data
-  wstrb := io.rw.wd.bits.strb
-  wen   := io.rw.wd.bits.wen
+  // write event
+  wIdx  := index(io.in.dmem.req.bits.addr)
+  wdata := io.in.dmem.req.bits.wdata
+  wstrb := io.in.dmem.req.bits.strb
+  wen   := SimpleBusCmd.isWriteReq(cmd = io.in.dmem.req.bits.cmd)
 
   val mems = (0 until split).map {_ => Module(new RAMHelper_2r1w(bankByte))}
   mems.zipWithIndex map { case (mem, i) =>
@@ -78,6 +79,7 @@ class RAM[T <: Data]
     mem.wmask   := MaskExpand(wstrb((i + 1) * 8 - 1, i * 8))
     mem.wen     := wen
   }
+
   val rdata_0 = mems.map {mem => mem.rdata_0}
   val rdata_1 = mems.map {mem => mem.rdata_1}
   rdata(0) := Cat(rdata_0.reverse)

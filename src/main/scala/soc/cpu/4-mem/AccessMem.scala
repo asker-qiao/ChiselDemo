@@ -71,12 +71,6 @@ object MemOpType {
   }
 }
 
-class AccessMemBus extends Bundle {
-  val r_req   = Decoupled(new SimpleReadAddr)
-  val r_resp  = Flipped(DecoupledIO(new SimpleReadData))
-  val w_req   = Decoupled(new SimpleWriteAddrData)
-}
-
 class AccessMem extends Module {
   val io = IO(new Bundle() {
     val in = Flipped(DecoupledIO(new ExuOutput))
@@ -89,29 +83,25 @@ class AccessMem extends Module {
       io.in.bits.mem_op, 
       io.in.bits.exe_result)
   
-  io.in.ready := (!mem_en) || (mem_en && io.dmem.r_resp.valid)
+  io.in.ready := (!mem_en) || (mem_en && io.dmem.resp.valid)
 
   val req_addr = exe_result
 
-  // load req
-  io.dmem.r_req.valid     := valid && mem_en.asBool() && MemOpType.isLoad(mem_op)
-  io.dmem.r_req.bits.addr := req_addr
+  // load or store req
+  io.dmem.req.valid      := valid && mem_en.asBool()
+  io.dmem.req.bits.addr  := req_addr
+  io.dmem.req.bits.cmd   := Mux(MemOpType.isStore(mem_op), SimpleBusCmd.req_write, SimpleBusCmd.req_read)
+  io.dmem.req.bits.wdata := Mux(MemOpType.isStore(mem_op), MemOpType.WriteData(addr = req_addr, rs2 = io.in.bits.rs2_data), 0.U)
+  io.dmem.req.bits.strb  := MemOpType.genMask(addr = req_addr, size = MemOpType.genSize(mem_op))
+  // io.dmem.req.bits.wen    := valid && mem_en.asBool() && MemOpType.isStore(mem_op)
+  //  resp
+  io.dmem.resp.ready := true.B
 
-  // store req
-  io.dmem.w_req.valid     := valid && mem_en.asBool() && MemOpType.isStore(mem_op)
-  io.dmem.w_req.bits.addr := req_addr
-  io.dmem.w_req.bits.data := MemOpType.WriteData(addr = req_addr, rs2 = io.in.bits.rs2_data)
-  io.dmem.w_req.bits.strb := MemOpType.genMask(addr = req_addr, size = MemOpType.genSize(mem_op))
-  io.dmem.w_req.bits.wen  := valid && mem_en.asBool() && MemOpType.isStore(mem_op)
-
-
-  // load resp
-  io.dmem.r_resp.ready := true.B
-  val load_data = MemOpType.genWriteBackData(read_words = io.dmem.r_resp.bits.data, mem_op = mem_op)
+  val load_data = MemOpType.genWriteBackData(read_words = io.dmem.resp.bits.rdata, mem_op = mem_op)
 
   val wb_data = Mux(mem_en, load_data, exe_result)
 
-  io.out.valid        := (!mem_en) || (mem_en && MemOpType.isLoad(mem_op) && io.dmem.r_resp.valid) || (mem_en && MemOpType.isStore(mem_op))
+  io.out.valid        := valid && ((!mem_en) || (mem_en && io.dmem.resp.valid))
   io.out.bits.pc      := io.in.bits.pc
   io.out.bits.instr   := io.in.bits.instr
   io.out.bits.wb_addr := io.in.bits.wb_addr

@@ -2,11 +2,11 @@ package utils
 
 import chisel3._
 import chisel3.util._
-import yycore._
+import cpu.Config.XLEN
 
 object RegMap {
 
-  def fullMask = (~(0.U(Parameters.XLEN.W))).asUInt()
+  def fullMask = (~(0.U(XLEN.W))).asUInt()
 
   def apply(addr: UInt, reg: UInt, wfn: UInt => UInt = (x => x)): (UInt, UInt, UInt => UInt) = {
     (addr, reg, wfn)

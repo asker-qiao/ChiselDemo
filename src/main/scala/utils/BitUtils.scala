@@ -22,3 +22,11 @@ import chisel3.util._
 object MaskExpand {
  def apply(m: UInt) = Cat(m.asBools.map(Fill(8, _)).reverse)
 }
+
+object MaskData {
+  def apply(oldData: UInt, newData: UInt, fullmask: UInt) = {
+    require(oldData.getWidth <= fullmask.getWidth, s"${oldData.getWidth} < ${fullmask.getWidth}")
+    require(newData.getWidth <= fullmask.getWidth, s"${newData.getWidth} < ${fullmask.getWidth}")
+    (newData & fullmask) | (oldData & ~fullmask)
+  }
+}

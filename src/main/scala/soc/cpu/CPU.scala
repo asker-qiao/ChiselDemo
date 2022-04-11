@@ -3,6 +3,7 @@ package cpu
 import chisel3._
 import chisel3.util._
 import difftest._
+import bus._
 
 class StageFiveCPU extends Module {
   val io = IO(new Bundle() {

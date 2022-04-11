@@ -10,11 +10,6 @@ class FetchInstrInfo extends Bundle {
   val pc = UInt(Config.AddrBits.W)
 }
 
-class InstrFetchBus extends Bundle {
-  val req = Decoupled(new SimpleReadAddr)
-  val resp = Flipped(DecoupledIO(new SimpleReadData))
-}
-
 /**
  * Instruction Fetch Unit
  */
