@@ -34,8 +34,6 @@ class ALU extends FunctionUnit(hasRedirect = false) {
   // alu operation
   val alu_out = MuxCase(0.U, Array(
     (func === ALUOpType.ADD)    ->  (src1 + src2).asUInt(),
-    (func === ALUOpType.SUB)    ->  (src1 - src2).asUInt(),
-    (func === ALUOpType.AND)    ->  (src1 & src2).asUInt(),
   ))
 
   io.out.valid := io.in.valid

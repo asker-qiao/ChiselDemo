@@ -75,16 +75,6 @@ object InstValid {
   val Y = 1.U(1.W)
 }
 
-object WBType {
-  def width = 2
-  val not = 0.U
-  val exe = 1.U
-  val pc = 2.U
-  val mem = 3.U
-
-  def apply() = UInt(width.W)
-}
-
 object FuType {
   def width = 2
   val alu = 0.U
@@ -121,10 +111,9 @@ object Decode {
   val idx_fu_func = 4
   val idx_mem_en = 5
   val idx_mem_op = 6
-  val idx_wb_type = 7
-  val idx_rf_wen = 8
+  val idx_rf_wen = 7
 
-  val decodeDefault = List(InstrType.illegal, SrcType.no, SrcType.no, FuType.alu, ALUOpType.ADD, MemType.N, MemOpType.no, WBType.exe, RfWen.N)
+  val decodeDefault = List(InstrType.illegal, SrcType.no, SrcType.no, FuType.alu, ALUOpType.ADD, MemType.N, MemOpType.no, RfWen.N)
 
   def DecodeTable = RV64I.table ++ SelfDefineTrap.table
 }
@@ -149,8 +138,6 @@ class DecodeUnit extends Module with RISCVConstants {
     val out = DecoupledIO(new DecodeCtrlSignal)
     // read reg file
     val read = Vec(2, Flipped(new RegfileReadIO))
-    // bypass: come from exe, mem, wb stage
-    // val bypass = Vec(3, Input(new ByPassIO))
   })
 
   io.in.ready := io.out.ready
@@ -182,18 +169,9 @@ class DecodeUnit extends Module with RISCVConstants {
   val rs1_data = io.read(0).data
   val rs2_data = io.read(1).data
 
-  // val rs1_data = MuxCase(io.read(0).data, Array(
-  //   (io.bypass(0).wb_addr === rs1_addr && (rs1_addr =/= 0.U) && io.bypass(0).rf_wen)  -> io.bypass(0).wb_data,
-  //   (io.bypass(1).wb_addr === rs1_addr && (rs1_addr =/= 0.U) && io.bypass(1).rf_wen)  -> io.bypass(1).wb_data,
-  // ))
-  // val rs2_data = MuxCase(io.read(1).data, Array(
-  //   (io.bypass(0).wb_addr === rs2_addr && (rs2_addr =/= 0.U) && io.bypass(0).rf_wen)  -> io.bypass(0).wb_data,
-  //   (io.bypass(1).wb_addr === rs2_addr && (rs2_addr =/= 0.U) && io.bypass(1).rf_wen)  -> io.bypass(1).wb_data,
-  // ))
-
   val imm = InstrType.genImm(instr, instr_type)
 
-  // generate operand 
+  // select operand 
   val op1_data = MuxCase(0.U, Array(
     (op1_sel === SrcType.reg)   -> rs1_data,
     (op1_sel === SrcType.imm)   -> imm,
@@ -217,6 +195,5 @@ class DecodeUnit extends Module with RISCVConstants {
   io.out.bits.mem_en   := mem_en
   io.out.bits.mem_op   := mem_op
   io.out.bits.wb_addr  := wb_addr
-  io.out.bits.wb_type  := ctrlsignals(Decode.idx_wb_type)
   io.out.bits.rf_wen   := rf_wen
 }

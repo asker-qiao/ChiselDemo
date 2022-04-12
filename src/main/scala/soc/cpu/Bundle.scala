@@ -19,19 +19,17 @@ class DecodeCtrlSignal() extends Bundle {
   val mem_op = MemOpType()
   val rf_wen = Bool()
   val wb_addr = UInt(5.W)
-  val wb_type = UInt(1.W)
 }
 
 class ExuOutput extends Bundle {
   val pc = UInt(32.W)
   val instr = UInt(32.W)
   val rs2_data = UInt(Config.XLEN.W)
+  val exe_result = UInt(Config.XLEN.W)
   val mem_en = UInt(1.W)  // access mem enable
   val mem_op = MemOpType()
-
   val rf_wen = Bool()
   val wb_addr = UInt(5.W)
-  val exe_result = UInt(Config.XLEN.W)
 }
 
 class WriteBackIO extends Bundle {

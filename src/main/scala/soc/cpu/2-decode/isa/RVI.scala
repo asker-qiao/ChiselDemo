@@ -51,51 +51,12 @@ object RV32I {
 
   // decode info table
   val table = Array(
-    AUIPC -> List(InstrType.u, SrcType.pc,  SrcType.imm, FuType.alu, ALUOpType.ADD,   MemType.N, MemOpType.no, WBType.exe, RfWen.Y),
-    LUI   -> List(InstrType.u, SrcType.imm, SrcType.imm, FuType.alu, ALUOpType.COPY1, MemType.N, MemOpType.no, WBType.exe, RfWen.Y),
+    AUIPC -> List(InstrType.u, SrcType.pc,  SrcType.imm, FuType.alu, ALUOpType.ADD, MemType.N, MemOpType.no, RfWen.Y),
 
+    ADDI  -> List(InstrType.i, SrcType.reg, SrcType.imm, FuType.alu, ALUOpType.ADD, MemType.N, MemOpType.no, RfWen.Y),
 
-    LB    -> List(InstrType.i, SrcType.reg, SrcType.imm, FuType.alu, ALUOpType.ADD,  MemType.N, MemOpType.lb,  WBType.exe, RfWen.Y),
-    LH    -> List(InstrType.i, SrcType.reg, SrcType.imm, FuType.alu, ALUOpType.ADD,  MemType.N, MemOpType.lh,  WBType.exe, RfWen.Y),
-    LW    -> List(InstrType.i, SrcType.reg, SrcType.imm, FuType.alu, ALUOpType.ADD,  MemType.N, MemOpType.lw,  WBType.exe, RfWen.Y),
-    LBU   -> List(InstrType.i, SrcType.reg, SrcType.imm, FuType.alu, ALUOpType.ADD,  MemType.N, MemOpType.lbu, WBType.exe, RfWen.Y),
-    LHU   -> List(InstrType.i, SrcType.reg, SrcType.imm, FuType.alu, ALUOpType.ADD,  MemType.N, MemOpType.lhu, WBType.exe, RfWen.Y),
-    SB    -> List(InstrType.s, SrcType.reg, SrcType.imm, FuType.alu, ALUOpType.ADD,  MemType.N, MemOpType.sb,  WBType.not, RfWen.N),
-    SH    -> List(InstrType.s, SrcType.reg, SrcType.imm, FuType.alu, ALUOpType.ADD,  MemType.N, MemOpType.sh,  WBType.not, RfWen.N),
-    SW    -> List(InstrType.s, SrcType.reg, SrcType.imm, FuType.alu, ALUOpType.ADD,  MemType.N, MemOpType.sw,  WBType.not, RfWen.N),
-
-    ADDI  -> List(InstrType.i, SrcType.reg, SrcType.imm, FuType.alu, ALUOpType.ADD,  MemType.N, MemOpType.no, WBType.exe, RfWen.Y),
-    ANDI  -> List(InstrType.i, SrcType.reg, SrcType.imm, FuType.alu, ALUOpType.AND,  MemType.N, MemOpType.no, WBType.exe, RfWen.Y),
-    ORI   -> List(InstrType.i, SrcType.reg, SrcType.imm, FuType.alu, ALUOpType.OR,   MemType.N, MemOpType.no, WBType.exe, RfWen.Y),
-    XORI  -> List(InstrType.i, SrcType.reg, SrcType.imm, FuType.alu, ALUOpType.XOR,  MemType.N, MemOpType.no, WBType.exe, RfWen.Y),
-    SLTU  -> List(InstrType.i, SrcType.reg, SrcType.imm, FuType.alu, ALUOpType.SLTU, MemType.N, MemOpType.no, WBType.exe, RfWen.Y),
-    SLTI  -> List(InstrType.i, SrcType.reg, SrcType.imm, FuType.alu, ALUOpType.SLT,  MemType.N, MemOpType.no, WBType.exe, RfWen.Y),
-    SLTIU -> List(InstrType.i, SrcType.reg, SrcType.imm, FuType.alu, ALUOpType.SLTU, MemType.N, MemOpType.no, WBType.exe, RfWen.Y),
-    SLLI  -> List(InstrType.i, SrcType.reg, SrcType.imm, FuType.alu, ALUOpType.SLL,  MemType.N, MemOpType.no, WBType.exe, RfWen.Y),
-    SRAI  -> List(InstrType.i, SrcType.reg, SrcType.imm, FuType.alu, ALUOpType.SRA,  MemType.N, MemOpType.no, WBType.exe, RfWen.Y),
-    SRLI  -> List(InstrType.i, SrcType.reg, SrcType.imm, FuType.alu, ALUOpType.SRL,  MemType.N, MemOpType.no, WBType.exe, RfWen.Y),
-
-    ADD   -> List(InstrType.i, SrcType.reg, SrcType.reg, FuType.alu, ALUOpType.ADD,  MemType.N, MemOpType.no, WBType.exe, RfWen.Y),
-    SUB   -> List(InstrType.i, SrcType.reg, SrcType.reg, FuType.alu, ALUOpType.SUB,  MemType.N, MemOpType.no, WBType.exe, RfWen.Y),
- 
-    // logicImmTyp,
-    AND   -> List(InstrType.i, SrcType.reg, SrcType.reg, FuType.alu, ALUOpType.AND,  MemType.N, MemOpType.no, WBType.exe, RfWen.Y),
-    OR    -> List(InstrType.i, SrcType.reg, SrcType.reg, FuType.alu, ALUOpType.OR,   MemType.N, MemOpType.no, WBType.exe, RfWen.Y),
-    XOR   -> List(InstrType.i, SrcType.reg, SrcType.reg, FuType.alu, ALUOpType.XOR,  MemType.N, MemOpType.no, WBType.exe, RfWen.Y),
-    SLT   -> List(InstrType.i, SrcType.reg, SrcType.reg, FuType.alu, ALUOpType.SLT,  MemType.N, MemOpType.no, WBType.exe, RfWen.Y),
-    SLL   -> List(InstrType.i, SrcType.reg, SrcType.reg, FuType.alu, ALUOpType.SLL,  MemType.N, MemOpType.no, WBType.exe, RfWen.Y),
-    SRA   -> List(InstrType.i, SrcType.reg, SrcType.reg, FuType.alu, ALUOpType.SRA,  MemType.N, MemOpType.no, WBType.exe, RfWen.Y),
-    SRL   -> List(InstrType.i, SrcType.reg, SrcType.reg, FuType.alu, ALUOpType.SRL,  MemType.N, MemOpType.no, WBType.exe, RfWen.Y),
-
-    JAL   -> List(InstrType.j, SrcType.pc,  SrcType.imm, FuType.jbu, JBUType.jal,   MemType.N, MemOpType.no, WBType.pc, RfWen.Y),
-    JALR  -> List(InstrType.i, SrcType.reg, SrcType.no,  FuType.jbu, JBUType.jalr,  MemType.N, MemOpType.no, WBType.pc, RfWen.Y),
-
-    BEQ   -> List(InstrType.b, SrcType.reg, SrcType.reg, FuType.jbu, JBUType.beq,   MemType.N, MemOpType.no, WBType.not, RfWen.N),
-    BNE   -> List(InstrType.b, SrcType.reg, SrcType.reg, FuType.jbu, JBUType.bne,   MemType.N, MemOpType.no, WBType.not, RfWen.N),
-    BLT   -> List(InstrType.b, SrcType.reg, SrcType.reg, FuType.jbu, JBUType.blt,   MemType.N, MemOpType.no, WBType.not, RfWen.N),
-    BLTU  -> List(InstrType.b, SrcType.reg, SrcType.reg, FuType.jbu, JBUType.bltu,  MemType.N, MemOpType.no, WBType.not, RfWen.N),
-    BGE   -> List(InstrType.b, SrcType.reg, SrcType.reg, FuType.jbu, JBUType.bge,   MemType.N, MemOpType.no, WBType.not, RfWen.N),
-    BGEU  -> List(InstrType.b, SrcType.reg, SrcType.reg, FuType.jbu, JBUType.bgeu,  MemType.N, MemOpType.no, WBType.not, RfWen.N)
+    JAL   -> List(InstrType.j, SrcType.pc,  SrcType.imm, FuType.jbu, JBUType.jal,   MemType.N, MemOpType.no,  RfWen.Y),
+    JALR  -> List(InstrType.i, SrcType.reg, SrcType.no,  FuType.jbu, JBUType.jalr,  MemType.N, MemOpType.no,  RfWen.Y)
   )
 }
 
@@ -116,19 +77,6 @@ object RV64I {
   def SD      = BitPat("b???????_?????_?????_011_?????_0100011")
 
   val table = RV32I.table ++ Array(
-    LD     -> List(InstrType.i, SrcType.reg, SrcType.no,  FuType.alu, ALUOpType.ADD,   MemType.Y, MemOpType.ld, WBType.exe, RfWen.Y),
-    LWU    -> List(InstrType.i, SrcType.reg, SrcType.no,  FuType.alu, ALUOpType.ADD,   MemType.Y, MemOpType.lwu, WBType.exe, RfWen.Y),
-    SD     -> List(InstrType.s, SrcType.reg, SrcType.reg, FuType.alu, ALUOpType.ADD,   MemType.Y, MemOpType.sd, WBType.not, RfWen.N),
-
-    ADDW   -> List(InstrType.r, SrcType.reg, SrcType.reg, FuType.alu, ALUOpType.ADDW,  MemType.N, MemOpType.no, WBType.exe, RfWen.Y),
-    SUBW   -> List(InstrType.r, SrcType.reg, SrcType.reg, FuType.alu, ALUOpType.SUBW,  MemType.N, MemOpType.no, WBType.exe, RfWen.Y),
-    SLLW   -> List(InstrType.r, SrcType.reg, SrcType.reg, FuType.alu, ALUOpType.SLLW,  MemType.N, MemOpType.no, WBType.exe, RfWen.Y),
-    SRLW   -> List(InstrType.r, SrcType.reg, SrcType.reg, FuType.alu, ALUOpType.SRLW,  MemType.N, MemOpType.no, WBType.exe, RfWen.Y),
-    SRAW   -> List(InstrType.r, SrcType.reg, SrcType.reg, FuType.alu, ALUOpType.SRAW,  MemType.N, MemOpType.no, WBType.exe, RfWen.Y),
-
-    ADDIW  -> List(InstrType.i, SrcType.reg, SrcType.no,  FuType.alu, ALUOpType.ADDW,  MemType.N, MemOpType.no, WBType.exe, RfWen.Y),
-    SLLIW  -> List(InstrType.i, SrcType.reg, SrcType.no,  FuType.alu, ALUOpType.SLLW,  MemType.N, MemOpType.no, WBType.exe, RfWen.Y),
-    SRLIW  -> List(InstrType.i, SrcType.reg, SrcType.no,  FuType.alu, ALUOpType.SRLW,  MemType.N, MemOpType.no, WBType.exe, RfWen.Y),
-    SRAIW  -> List(InstrType.i, SrcType.reg, SrcType.no,  FuType.alu, ALUOpType.SRAW,  MemType.N, MemOpType.no, WBType.exe, RfWen.Y),
+    SD     -> List(InstrType.s, SrcType.reg, SrcType.reg, FuType.alu, ALUOpType.ADD,   MemType.Y, MemOpType.sd, RfWen.N)
   )
 }
