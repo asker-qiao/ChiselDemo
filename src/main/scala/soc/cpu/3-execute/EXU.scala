@@ -12,7 +12,6 @@ class EXU extends Module {
     val in = Flipped(DecoupledIO(new DecodeCtrlSignal))
     val out = DecoupledIO(new ExuOutput)
     val redirect = ValidIO(new RedirectIO)
-    // val bypass = Output(new ByPassIO)
   })
 
   val (op1_data, op2_data, fu_type, fu_func) = (io.in.bits.op1_data,
@@ -30,14 +29,16 @@ class EXU extends Module {
   alu.io.in.bits.src1 := op1_data
   alu.io.in.bits.src2 := op2_data
   alu.io.in.bits.func := fu_func
-  alu.io.out.ready    := true.B
+  alu.io.out.ready    := io.out.ready
 
   val jbu = Module(new JumpBranchUnit)
   jbu.io.in.valid     := io.in.valid && isJBU
+  jbu.io.in.bits.func := fu_func
   jbu.io.in.bits.src1 := op1_data
   jbu.io.in.bits.src2 := op2_data
-  jbu.io.in.bits.func := fu_func
-  jbu.io.out.ready    := true.B
+  jbu.br_io.pc        := io.in.bits.pc
+  jbu.br_io.rs2_data  := io.in.bits.rs2_data
+  jbu.io.out.ready    := io.out.ready
 
   // TODO: add more fu such as MDU(mul/div unit)、CSR...
 

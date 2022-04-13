@@ -55,8 +55,8 @@ object RV32I {
 
     ADDI  -> List(InstrType.i, SrcType.reg, SrcType.imm, FuType.alu, ALUOpType.ADD, MemType.N, MemOpType.no, RfWen.Y),
 
-    JAL   -> List(InstrType.j, SrcType.pc,  SrcType.imm, FuType.jbu, JBUType.jal,   MemType.N, MemOpType.no,  RfWen.Y),
-    JALR  -> List(InstrType.i, SrcType.reg, SrcType.no,  FuType.jbu, JBUType.jalr,  MemType.N, MemOpType.no,  RfWen.Y)
+    JAL   -> List(InstrType.j, SrcType.pc,  SrcType.imm, FuType.jbu, JBUType.jal,   MemType.N, MemOpType.no, RfWen.Y),
+    JALR  -> List(InstrType.i, SrcType.reg, SrcType.imm, FuType.jbu, JBUType.jalr,  MemType.N, MemOpType.no, RfWen.Y)
   )
 }
 
