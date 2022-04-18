@@ -8,41 +8,44 @@ class RedirectIO extends Bundle {
 }
 
 class DecodeCtrlSignal() extends Bundle {
-  val pc = UInt(32.W)
-  val instr = UInt(32.W)
-  val op1_data = UInt(Config.XLEN.W)
-  val op2_data = UInt(Config.XLEN.W)
-  val rs2_data = UInt(Config.XLEN.W)
-  val fu_type = FuType()
-  val fu_func = UInt(4.W)
-  val mem_en = UInt(1.W)  // access mem enable
-  val mem_op = MemOpType()
-  val rf_wen = Bool()
-  val wb_addr = UInt(5.W)
+  val pc          = UInt(32.W)
+  val instr       = UInt(32.W)
+  val instr_type  = InstrType()
+  val op1_data    = UInt(Config.XLEN.W)
+  val op2_data    = UInt(Config.XLEN.W)
+  val rs2_data    = UInt(Config.XLEN.W)
+  val fu_type     = FuType()
+  val fu_func     = FuOpType()
+  val mem_en      = UInt(1.W)  // access mem enable
+  val mem_op      = MemOpType()
+  val rf_wen      = Bool()
+  val wb_addr     = UInt(5.W)
 }
 
 class ExuOutput extends Bundle {
-  val pc = UInt(32.W)
-  val instr = UInt(32.W)
-  val rs2_data = UInt(Config.XLEN.W)
-  val exe_result = UInt(Config.XLEN.W)
-  val mem_en = UInt(1.W)  // access mem enable
-  val mem_op = MemOpType()
-  val rf_wen = Bool()
-  val wb_addr = UInt(5.W)
+  val pc          = UInt(32.W)
+  val instr       = UInt(32.W)
+  val instr_type  = InstrType()
+  val rs2_data    = UInt(Config.XLEN.W)
+  val exe_result  = UInt(Config.XLEN.W)
+  val mem_en      = UInt(1.W)  // access mem enable
+  val mem_op      = MemOpType()
+  val rf_wen      = Bool()
+  val wb_addr     = UInt(5.W)
 }
 
 class WriteBackIO extends Bundle {
-  val pc = UInt(32.W)
-  val instr = UInt(32.W)
-  val rf_wen = Bool()
-  val wb_addr = UInt(5.W)
-  val wb_data = UInt(Config.XLEN.W)
+  val pc          = UInt(32.W)
+  val instr       = UInt(32.W)
+  val instr_type  = InstrType()
+  val rf_wen      = Bool()
+  val wb_addr     = UInt(5.W)
+  val wb_data     = UInt(Config.XLEN.W)
 }
 
 
 class ByPassIO extends Bundle {
-  val rf_wen = Bool()
+  val rf_wen  = Bool()
   val wb_addr = UInt(5.W)
   val wb_data = UInt(Config.XLEN.W)
 

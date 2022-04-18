@@ -101,11 +101,12 @@ class AccessMem extends Module {
 
   val wb_data = Mux(mem_en, load_data, exe_result)
 
-  io.out.valid        := valid && ((!mem_en) || (mem_en && io.dmem.resp.valid))
-  io.out.bits.pc      := io.in.bits.pc
-  io.out.bits.instr   := io.in.bits.instr
-  io.out.bits.wb_addr := io.in.bits.wb_addr
-  io.out.bits.rf_wen  := io.in.bits.rf_wen
-  io.out.bits.wb_data := wb_data
+  io.out.valid            := valid && ((!mem_en) || (mem_en && io.dmem.resp.valid))
+  io.out.bits.pc          := io.in.bits.pc
+  io.out.bits.instr       := io.in.bits.instr
+  io.out.bits.instr_type  := io.in.bits.instr_type
+  io.out.bits.wb_addr     := io.in.bits.wb_addr
+  io.out.bits.rf_wen      := io.in.bits.rf_wen
+  io.out.bits.wb_data     := wb_data
 
 }

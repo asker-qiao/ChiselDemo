@@ -25,19 +25,20 @@ class WBU extends Module {
   io.next_pc.bits.target  := io.in.bits.pc + 4.U
 
   val difftest_instr  = Module(new DifftestInstrCommit)
-  difftest_instr.io.clock   := clock
-  difftest_instr.io.coreid  := 0.U
-  difftest_instr.io.index   := 0.U
-  difftest_instr.io.instr   := RegNext(io.in.bits.instr)
-
-  difftest_instr.io.valid   := RegNext(io.in.valid && !reset.asBool)
-  difftest_instr.io.pc      := RegNext(io.in.bits.pc)
-  difftest_instr.io.special := 0.U
-  difftest_instr.io.skip    := false.B// RegNext(isMMIO)
-  difftest_instr.io.isRVC   := false.B
-  difftest_instr.io.wen     := RegNext(io.in.valid && io.in.bits.rf_wen && io.in.bits.wb_addr =/= 0.U)
-  difftest_instr.io.wpdest  := 0.U// RegNext(uop.pdest)
-  difftest_instr.io.wdest   := RegNext(io.in.bits.wb_addr)
+  difftest_instr.io.clock     := clock
+  difftest_instr.io.coreid    := 0.U
+  difftest_instr.io.index     := 0.U
+  difftest_instr.io.instr     := RegNext(io.in.bits.instr)
+  difftest_instr.io.dec_type  := RegNext(io.in.bits.instr_type)
+  difftest_instr.io.valid     := RegNext(io.in.valid) && !reset.asBool
+  difftest_instr.io.pc        := RegNext(io.in.bits.pc)
+  difftest_instr.io.special   := 0.U
+  difftest_instr.io.skip      := false.B  // TODO: RegNext(isMMIO)
+  difftest_instr.io.isRVC     := false.B
+  difftest_instr.io.wen       := RegNext(io.in.valid && io.in.bits.rf_wen && io.in.bits.wb_addr =/= 0.U)
+  difftest_instr.io.wpdest    := 0.U      // useless 
+  difftest_instr.io.wdest     := RegNext(io.in.bits.wb_addr)
+  difftest_instr.io.wdata     := RegNext(io.in.bits.wb_data)
 
   val instrCnt = RegInit(0.U(64.W))
   val cycleCnt = RegInit(0.U(64.W))

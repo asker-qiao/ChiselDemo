@@ -52,6 +52,7 @@ class EXU extends Module {
   io.out.valid           := io.in.valid
   io.out.bits.pc         := io.in.bits.pc
   io.out.bits.instr      := io.in.bits.instr
+  io.out.bits.instr_type := io.in.bits.instr_type
   io.out.bits.rs2_data   := io.in.bits.rs2_data
   io.out.bits.exe_result := exe_result
   io.out.bits.mem_en     := io.in.bits.mem_en

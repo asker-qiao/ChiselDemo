@@ -27,9 +27,11 @@ emu: $(SIM_TOP_V)
 emu-run:
 	$(MAKE) -C ./difftest emu-run SIM_TOP=$(SIM_TOP) DESIGN_DIR=$(NOOP_HOME) EMU_TRACE=1
 
+emu-clean:
+	$(MAKE) -C ./difftest emu-clean SIM_TOP=$(SIM_TOP) DESIGN_DIR=$(NOOP_HOME) 
 
 clean:
 	$(MAKE) -C ./difftest clean
 	rm -rf ./build
 
-.PHONY: emu emu-run sim-verilog clean 
+.PHONY: emu emu-run sim-verilog clean emu-clean

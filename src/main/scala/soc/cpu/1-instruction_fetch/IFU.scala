@@ -23,7 +23,6 @@ class IFU extends Module {
 
   // PC
   val pc = RegInit(Config.ResetPC.U)
-  val snpc = pc + 4.U
   val pc_next = Mux(io.redirect.valid, io.redirect.bits.target, io.next_pc.bits.target)
 
   // update pc

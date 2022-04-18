@@ -5,7 +5,6 @@ import chisel3.util._
 import Config.XLEN
 
 object InstrType {
-  def width = 3
   val illegal = "b0000".U
   val i       = "b0001".U
   val s       = "b0010".U
@@ -15,6 +14,8 @@ object InstrType {
   val r       = "b0110".U
   val z       = "b0111".U
   val trap    = "b1000".U
+
+  def width   = 4
   def apply() = UInt(width.W)
 
   def genImm(instr: UInt, instr_type: UInt): UInt = {
@@ -90,7 +91,8 @@ object FuType {
 }
 
 object FuOpType {
-  def apply() = UInt(4.W)
+  def width = 4
+  def apply() = UInt(width.W)
 }
 
 object MemType {
@@ -184,16 +186,17 @@ class DecodeUnit extends Module with RISCVConstants {
   )).asUInt()
 
   // output to next stage
-  io.out.valid         := io.in.valid
-  io.out.bits.pc       := pc
-  io.out.bits.instr    := instr
-  io.out.bits.op1_data := op1_data
-  io.out.bits.op2_data := op2_data
-  io.out.bits.rs2_data := io.read(1).data
-  io.out.bits.fu_type  := fu_type
-  io.out.bits.fu_func  := fu_func
-  io.out.bits.mem_en   := mem_en
-  io.out.bits.mem_op   := mem_op
-  io.out.bits.wb_addr  := wb_addr
-  io.out.bits.rf_wen   := rf_wen
+  io.out.valid            := io.in.valid
+  io.out.bits.pc          := pc
+  io.out.bits.instr_type  := instr_type
+  io.out.bits.instr       := instr
+  io.out.bits.op1_data    := op1_data
+  io.out.bits.op2_data    := op2_data
+  io.out.bits.rs2_data    := io.read(1).data
+  io.out.bits.fu_type     := fu_type
+  io.out.bits.fu_func     := fu_func
+  io.out.bits.mem_en      := mem_en
+  io.out.bits.mem_op      := mem_op
+  io.out.bits.wb_addr     := wb_addr
+  io.out.bits.rf_wen      := rf_wen
 }
