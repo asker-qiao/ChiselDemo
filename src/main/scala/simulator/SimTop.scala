@@ -2,15 +2,24 @@ package simulator
 
 import chisel3._
 import difftest._
-import soc.SoC
+import soc._
 import bus._
+import device._
+import soc.cpu.Config
 
 case class SimulatorConfig 
 (
   memory_type: String = "2r1w",
-  memory_size: Int = 256 * 1024 * 1024
+  memory_size: Int = 256 * 1024 * 1024,
+  beatBytes: Int = 8
 )
 
+trait SimulatorConst {
+  val cfg = Config.simConfig
+
+  val memory_size: Int = cfg.memory_size
+  val beatBytes: Int = cfg.beatBytes
+}
 
 class SimTop extends Module {
   val io = IO(new Bundle(){
@@ -18,13 +27,13 @@ class SimTop extends Module {
     val perfInfo = new PerfInfoIO
     val uart = new UARTIO
   })
-  io.uart := DontCare
-  
 
-  val soc = Module(new SoC(io_type = new SimpleBus))
-  val memory = Module(new RAM(io_type = new SimpleBus()))
+  val soc = Module(new SoC(io_type = new DoubleSimpleBus))
+  val memory = Module(new RAM(io_type = new DoubleSimpleBus()))
+  val device = Module(new DeviceTop(io_type = new DoubleSimpleBus))
 
   soc.io.mem <> memory.io.in
+  io.uart <> device.io.uart
 }
 
 object GenVerilog extends App {
