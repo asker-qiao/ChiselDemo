@@ -4,8 +4,8 @@ import bus._
 import chisel3._
 import chisel3.experimental.ExtModule
 import chisel3.util._
-import soc.cpu.Config
 import utils._
+import config._
 
 class RAMHelper_2r1w(memByte: BigInt) extends ExtModule {
   val DataBits = 64

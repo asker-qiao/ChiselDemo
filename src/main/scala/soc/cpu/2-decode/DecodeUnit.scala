@@ -2,7 +2,7 @@ package soc.cpu
 
 import chisel3._
 import chisel3.util._
-import Config.XLEN
+import config.Config._
 
 object InstrType {
   val illegal = "b0000".U

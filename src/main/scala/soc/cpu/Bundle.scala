@@ -2,6 +2,7 @@ package soc.cpu
 
 import chisel3._
 import chisel3.util._
+import config._
 
 class RedirectIO extends Bundle {
   val target = UInt(Config.AddrBits.W)

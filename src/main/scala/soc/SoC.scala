@@ -1,8 +1,8 @@
 package soc
 
 import chisel3._
-import cpu._
 import bus._
+import config.Config
 
 class SoC extends Module {
   val io = IO(new Bundle () {
@@ -23,8 +23,13 @@ class SoC1 extends Module {
   val clint = Module(new CLINT(sim = false))
   val axi_xbar = Module(new CrossBarNto1(io_type = new AXI4, numIn = 3))
 
+  val uncache_xbar = Module(new CrossBar1toN(io_type = new AXI4, addrSpace = Config.non_cacheableAddrSpace))
+
+  uncache_xbar.io.in <> core.io.mem.uncache
+  uncache_xbar.io.out(1) <> clint.io.in
+
   axi_xbar.io.in(0) <> core.io.mem.dmem
-  axi_xbar.io.in(1) <> core.io.mem.uncache
+  axi_xbar.io.in(1) <> uncache_xbar.io.out(0)
   axi_xbar.io.in(2) <> core.io.mem.imem
 
   io.mem <> axi_xbar.io.out

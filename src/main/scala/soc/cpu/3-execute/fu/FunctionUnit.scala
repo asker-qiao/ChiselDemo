@@ -2,6 +2,7 @@ package soc.cpu
 
 import chisel3._
 import chisel3.util._
+import config._
 
 class FuInputIO extends Bundle {
   val src1 = UInt(Config.XLEN.W)

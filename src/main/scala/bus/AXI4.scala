@@ -2,7 +2,7 @@ package bus
 
 import chisel3._
 import chisel3.util._
-import soc.cpu.Config
+import config._
 
 object AXI4Parameters {
   // These are all fixed by the AXI4 standard:

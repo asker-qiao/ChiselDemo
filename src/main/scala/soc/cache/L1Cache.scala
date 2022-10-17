@@ -3,8 +3,7 @@ package soc.cache
 import chisel3._
 import chisel3.util._
 import bus._
-import main.scala.bus.AXI4
-import soc.cpu.Config
+import config._
 import soc.mmu.TLBMasterIO
 import utils.{MaskData, MaskExpand, ReplacementPolicy, SRAMSinglePort}
 
@@ -44,6 +43,11 @@ trait L1CacheConst {
   def getTag(addr: UInt) = addr(addr.getWidth - 1, IndexBits + lineBits)
   def getXlenOffset(addr: UInt) = addr(lineAddrWidth - 1, 3)
 
+  def addrMatch(addr: UInt, addrSpace: List[(Long, Long)]) = {
+    val matchVec = VecInit(addrSpace.map(
+      range => (addr >= range._1.U && addr < (range._1 + range._2).U)))
+    VecInit(PriorityEncoderOH(matchVec))
+  }
 }
 
 class L1DataArrayTemplateReq[T <: Data](_type: T) extends Bundle with L1CacheConst {
@@ -103,6 +107,7 @@ class L1Cache extends Module with L1CacheConst {
   val io = IO(new Bundle() {
     val cpu = Flipped(new MasterSimpleBus)
     val tlb = Flipped(new TLBMasterIO)
+    val uncache = new MasterSimpleBus
     val mem = new AXI4
   })
 
@@ -116,6 +121,7 @@ class L1Cache extends Module with L1CacheConst {
 
   val metaArb = Module(new Arbiter(new L1DataArrayTemplateReq(new MetaBundle), 2))
 
+  val s2_ready = Wire(Bool())
   /**
    * Stage 0: virual address
    */
@@ -134,7 +140,10 @@ class L1Cache extends Module with L1CacheConst {
   val s1_cmd = RegEnable(next = io.cpu.req.bits.cmd, init = 0.U, enable = s0_fire)
   val s1_wdata = RegEnable(next = io.cpu.req.bits.wdata, init = 0.U, enable = s0_fire)
   val s1_strb = RegEnable(next = io.cpu.req.bits.strb, init = 0.U, enable = s0_fire)
+  val s1_id = RegEnable(next = io.cpu.req.bits.id, init = 0.U, enable = s0_fire)
   val s1_p_addr = io.tlb.resp.bits.p_addr
+  val cacheable = addrMatch(addr = s1_p_addr, addrSpace = Config.cacheableAddrSpace)   // TODO: fix it by pmp
+  io.tlb.resp.ready := s2_ready
   val s1_fire = io.tlb.resp.fire
 
   dataArb.io.in(s1ReqIndex).valid := s1_fire
@@ -161,6 +170,7 @@ class L1Cache extends Module with L1CacheConst {
   val s2_cmd    = RegEnable(next = s1_cmd, init = 0.U, enable = s1_fire)
   val s2_wdata  = RegEnable(next = s1_wdata, init = 0.U, enable = s1_fire)
   val s2_strb   = RegEnable(next = s1_strb, init = 0.U, enable = s1_fire)
+  val s2_id   = RegEnable(next = s1_id, init = 0.U, enable = s1_fire)
 
   val readLines = dataArray.io.resp.bits.rdata
   val metaLines = metaArray.io.resp.bits.rdata
@@ -184,8 +194,13 @@ class L1Cache extends Module with L1CacheConst {
     newLine
   }
 
-  io.cpu.resp.valid := state === s_idle && hasHit
-  io.cpu.resp.bits.data := hitXlenData
+  /**
+   * Resp to CPU
+   */
+
+  io.cpu.resp.valid := (state === s_idle && s2_valid && hasHit) || io.uncache.resp.valid
+  io.cpu.resp.bits.apply(data = hitXlenData, id = s2_id,
+    cmd = Mux(SimpleBusCmd.isWriteReq(s2_cmd), SimpleBusCmd.resp_write, SimpleBusCmd.req_read))
 
   /**
    * Cache Miss Handler Unit
@@ -193,6 +208,7 @@ class L1Cache extends Module with L1CacheConst {
    */
   val s_idle :: s_memReadReq :: s_memReadResp :: s_memWriteAddrReq :: s_memWriteDataReq :: s_memWriteResp :: s_refill :: s_replay :: Nil = Enum(8)
   val state = RegInit(s_idle)
+  s2_ready := state === s_idle && io.uncache.req.ready && io.cpu.resp.ready
 
   val axiBeatsReg = Counter(AXIBeats)
   val lineBuffer = RegInit(VecInit(Seq.fill(AXIBeats)(0.U(L1AXIDataBits.W))))

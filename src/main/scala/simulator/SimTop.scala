@@ -5,9 +5,9 @@ import difftest._
 import soc._
 import bus._
 import device._
-import soc.cpu.Config
+import config._
 
-case class SimulatorConfig 
+case class SimulatorConfig
 (
   memory_type: String = "2r1w",
   memory_size: Int = 256 * 1024 * 1024,
@@ -28,7 +28,7 @@ class SimTop extends Module {
     val uart = new UARTIO
   })
 
-  val soc = Module(new SoC(io_type = new DoubleSimpleBus))
+  val soc = Module(new SoC())
   val memory = Module(new RAM(io_type = new DoubleSimpleBus()))
   val device = Module(new DeviceTop(io_type = new DoubleSimpleBus))
 

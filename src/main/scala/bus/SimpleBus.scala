@@ -3,6 +3,7 @@ package bus
 import chisel3._
 import chisel3.util._
 import soc.cpu._
+import config._
 
 object SimpleBusCmd {
   def apply() = UInt(2.W)
@@ -32,7 +33,7 @@ class SimpleBusInstrResp extends Bundle {
 class SimpleBusReq extends SimpleBusBundle {
   val addr = UInt(Config.AddrBits.W)
   val id = UInt(idBits.W)
-  val cmd = UInt(2.W)
+  val cmd = SimpleBusCmd()
   val wdata = UInt(Config.XLEN.W)
   val strb = UInt(8.W)
   val size = UInt(2.W)
@@ -50,6 +51,13 @@ class SimpleBusReq extends SimpleBusBundle {
 class SimpleBusResp extends SimpleBusBundle {
   val data = UInt(Config.XLEN.W)
   val id = UInt(idBits.W)
+  val cmd = SimpleBusCmd()
+
+  def apply(data: UInt, id: UInt, cmd: UInt) = {
+    this.data := data
+    this.id := id
+    this.cmd := cmd
+  }
 }
 
 class MasterSimpleBus extends SimpleBusBundle {

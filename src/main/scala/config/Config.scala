@@ -1,4 +1,4 @@
-package soc.cpu
+package config
 
 import simulator.SimulatorConfig
 import soc.cache._
@@ -10,6 +10,12 @@ object Config {
   val VAddrBits: Int = 32
   val PAddrBits: Int = 32
   val ResetPC = "h8000_0000"
+
+  val cacheableAddrSpace = List((0x80000000L, 0x80000000L))
+  val non_cacheableAddrSpace = List(
+    (0x40600000L, 0x10L),
+    (0x20000000L, 0x10000L)
+  )
 
   val cacheAddrSpace = List(
     (0x0L, 0x80000000L),

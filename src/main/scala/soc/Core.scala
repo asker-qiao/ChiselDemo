@@ -1,10 +1,11 @@
-package soc.cpu
+package soc
 
+import bus._
 import chisel3._
 import chisel3.util._
-import bus._
-import main.scala.bus.AXI4
+import config._
 import soc.cache._
+import soc.cpu._
 import soc.mmu._
 
 class RiscvCore extends Module {
@@ -12,7 +13,7 @@ class RiscvCore extends Module {
     val mem = new DoubleSimpleBus
   })
 
-  val cpu = Module(new StageFiveCPU)
+  val cpu = Module(new SingleCycleCPU)
 
 
   // 
@@ -25,20 +26,17 @@ class RiscvCore1 extends Module {
     val mem = new DoubleSimpleBus
   })
 
-  val cpu     = Module(new StageFiveCPU)
+  val cpu     = Module(new FiveStageCPU)
   val icache  = Module(new L1Cache)
   val dcache  = Module(new L1Cache)
   val uncache = Module(new UnCache)
 
-  val crossbar = Module(new SimpleBusCrossBar1toN(addrSpace = Config.cacheAddrSpace))
-
-  crossbar.io.in <> cpu.io.dmem
-
   icache.io.cpu <> cpu.io.imem
-  dcache.io.cpu <> crossbar.io.out(1)
-  uncache.io.cpu <> crossbar.io.out(0)
+  dcache.io.cpu <> cpu.io.dmem
 
-  //
+  uncache.io.cpu(0) <> dcache.io.uncache
+  uncache.io.cpu(1) <> icache.io.uncache
+
   io.mem.imem <> icache.io.mem
   io.mem.dmem <> icache.io.mem
 }
@@ -52,7 +50,7 @@ class RiscvCore2 extends Module {
     }
   })
 
-  val cpu     = Module(new StageFiveCPU)
+  val cpu     = Module(new FiveStageCPU)
   val icache  = Module(new L1Cache)
   val dcache  = Module(new L1Cache)
   val uncache = Module(new UnCache)
@@ -60,22 +58,21 @@ class RiscvCore2 extends Module {
   val dtlb    = Module(new TLB(cfg = Config.dTlb))
   val ptw     = Module(new PTW)
 
-  val crossbar = Module(new SimpleBusCrossBar1toN(addrSpace = Config.cacheAddrSpace))
+  icache.io.cpu <> cpu.io.imem
 
   val dCacheReqArb  = Module(new Arbiter(new PTWReq, 2))
-  val tlbReqArb     = Module(new Arbiter(new PTWReq, 2))
-
-  crossbar.io.in <> cpu.io.dmem
-
   dCacheReqArb.io.in(0) <> ptw.io.mem
-  dCacheReqArb.io.in(1) <> crossbar.io.out(1)
-  uncache.io.cpu <> crossbar.io.out(0)
-
+  dCacheReqArb.io.in(1) <> cpu.io.dmem
   dcache.io.cpu <> dCacheReqArb.io.out
 
-  tlbReqArb.io.in(0) <> dtlb.io.ptw.req
-  tlbReqArb.io.in(1) <> itlb.io.ptw.req
-  ptw.io.tlb.req <> tlbReqArb.io.out
+  uncache.io.cpu(0) <> dcache.io.uncache
+  uncache.io.cpu(1) <> icache.io.uncache
+
+  dtlb.io.cpu <> dcache.io.tlb
+  itlb.io.cpu <> icache.io.tlb
+
+  ptw.io.tlb(0) <> dtlb.io.ptw
+  ptw.io.tlb(1) <> itlb.io.ptw
 
   io.mem.imem <> icache.io.mem
   io.mem.dmem <> dcache.io.mem

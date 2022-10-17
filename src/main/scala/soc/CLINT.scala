@@ -3,6 +3,7 @@ package soc
 import chisel3._
 import chisel3.util._
 import bus._
+import simulator.device.BaseDevice
 import utils._
 
 class ClintIO extends Bundle() {
@@ -14,14 +15,9 @@ class ClintIO extends Bundle() {
 * 当软件写1至msip寄存器触发软件中断，CSR寄存器mip中的MSIP置高指示当前中断等待（Pending）状态，
 * 软件可通过写0至msip寄存器来清除该软件中断
 */
-class CLINT(sim: Boolean = false) extends Module {
-  val io = IO(new Bundle() {
-    val cpu = Flipped(new MasterSimpleBus)
-    val toCpu = Output(new ClintIO)
-  })
+class CLINT(sim: Boolean = false) extends BaseDevice(io_type = new AXI4) {
+  val toCPUio = IO(new ClintIO)
 
-  val raddr = io.cpu.req.bits.addr
-  val waddr = io.cpu.req.bits.addr
 
   val msip = RegInit(0.U(64.W))     // 生成软件中断
   val mtime = RegInit(0.U(64.W))    // 计时器的值
@@ -42,29 +38,29 @@ class CLINT(sim: Boolean = false) extends Module {
   def getOffset(addr: UInt) = addr(15,0)
   val reg_raddr = raddr(15, 0)
   val reg_wadrr = waddr(15, 0)
-  io.r.bits.data := MuxCase(0.U, Array(
+  rdata := MuxCase(0.U, Array(
     (reg_raddr === 0x0.U) -> msip,
     (reg_raddr === 0x4000.U) -> mtimecmp,
     (reg_raddr === 0x8000.U) -> freq,
     (reg_raddr === 0x8008.U) -> inc,
     (reg_raddr === 0xbff8.U) -> mtime
   ))
-  when(io.cpu.req.fire && io.cpu.req.bits.cmd === SimpleBusCmd.req_write){
+  when(wen){
     when(reg_wadrr === 0x0.U){
-      msip := MaskData(msip, in.w.bits.data, MaskExpand(in.w.bits.strb))
+      msip := MaskData(msip, wdata, MaskExpand(wstrb))
     }.elsewhen(reg_wadrr === 0x4000.U){
-      mtimecmp := MaskData(mtimecmp, in.w.bits.data, MaskExpand(in.w.bits.strb))
+      mtimecmp := MaskData(mtimecmp, wdata, MaskExpand(wstrb))
     }.elsewhen(reg_wadrr === 0x8000.U){
-      freq := MaskData(freq, in.w.bits.data, MaskExpand(in.w.bits.strb))
+      freq := MaskData(freq, wdata, MaskExpand(wstrb))
     }.elsewhen(reg_wadrr === 0x8008.U){
-      inc := MaskData(inc, in.w.bits.data, MaskExpand(in.w.bits.strb))
+      inc := MaskData(inc, wdata, MaskExpand(wstrb))
     }.elsewhen(reg_wadrr === 0xbff8.U){
-      mtime := MaskData(mtime, in.w.bits.data, MaskExpand(in.w.bits.strb))
+      mtime := MaskData(mtime, wdata, MaskExpand(wstrb))
     }.otherwise{
       printf("CLINT: addr ERROR!!!\n")
     }
   }
 
-  io.toCpu.mtip := RegNext(mtime >= mtimecmp)
-  io.toCpu.msip := RegNext(msip =/= 0.U)
+  toCPUio.mtip := RegNext(mtime >= mtimecmp)
+  toCPUio.msip := RegNext(msip =/= 0.U)
 }

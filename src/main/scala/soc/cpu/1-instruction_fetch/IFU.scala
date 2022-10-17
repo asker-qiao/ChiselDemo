@@ -3,7 +3,7 @@ package soc.cpu
 import chisel3._
 import chisel3.util._
 import bus._
-
+import config._
 
 class FetchInstrInfo extends Bundle {
   val instr = UInt(32.W)

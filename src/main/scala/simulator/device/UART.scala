@@ -3,7 +3,7 @@ package simulator.device
 import chisel3._
 import difftest.UARTIO
 import bus._
-import utils.{MaskExpand, RegMap}
+import utils._
 
 class UART[T <: Data](_type: T = new AXI4) extends BaseDevice(io_type = _type) {
   val uartio = IO(new UARTIO)

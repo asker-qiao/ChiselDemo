@@ -5,8 +5,8 @@ import bus._
 import chisel3.util._
 import difftest.UARTIO
 import simulator.SimulatorConst
-import soc.cpu.Config._
 import utils._
+import config.Config._
 
 class DeviceTop[T <: Bundle](io_type: T = new AXI4) extends Module with SimulatorConst {
   val io = IO(new Bundle() {

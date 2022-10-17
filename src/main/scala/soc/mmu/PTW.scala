@@ -3,14 +3,13 @@ package soc.mmu
 import chisel3._
 import chisel3.util._
 import bus._
-import soc.cpu.Config
+import config._
 
 class PTWReq extends Bundle with MMUConst {
   val vpn = UInt(vpnBits.W)
 }
 
-class PTWResp extends Bundle with MMUConst {
-  val vpn = UInt(vpnBits.W)
+class PTWResp extends PTWReq with MMUConst {
   val pte = new PageTableEntry
   val level = UInt(LevelBits.W)
 }
@@ -21,19 +20,27 @@ class PTWMasterIO extends Bundle {
 }
 
 class PTW extends Module with MMUConst {
+  val numReq = 2
   val io = IO(new Bundle() {
-    val tlb = new PTWMasterIO
+    val tlb = Vec(numReq, new PTWMasterIO)
     val mem = new MasterSimpleBus
   })
 
+  val tlbReqArb     = Module(new Arbiter(new PTWReq, numReq))
+  tlbReqArb.io.in(0) <> io.tlb(0).req
+  tlbReqArb.io.in(1) <> io.tlb(1).req
+  val arbReq = tlbReqArb.io.out
+
+
   val req_vpn = RegInit(0.U(vpnBits.W))
+  val req_id = RegInit(0.U(1.W))
   val level = RegInit(0.U(LevelBits))
   val readPte = RegInit(0.U.asTypeOf(new PageTableEntry))
 
   val s_ilde :: s_memReq :: s_memResp :: s_check :: Nil = Enum(4)
   val state = RegInit(s_ilde)
 
-  io.tlb.req.ready := state === s_ilde
+  io.tlb.map(_.req.ready := state === s_ilde)
 
   val pte_addr = (((readPte.ppn << vpnSubBits) | req_vpn) << log2Ceil(XLEN / 8))(Config.PAddrBits - 1, 0)
 
@@ -44,16 +51,21 @@ class PTW extends Module with MMUConst {
   val max_level = (PageTableLevel-1).U
   val final_pte = (readPte.isLeafPTE() || level === max_level) || pageFault
 
-  io.tlb.resp.valid := state === s_check && final_pte
-  io.tlb.resp.bits.vpn := req_vpn
-  io.tlb.resp.bits.pte := readPte
-  io.tlb.resp.bits.level := level
+  for (i <- 0 until numReq) {
+    val resp = io.tlb(i).resp
+
+    resp.valid := state === s_check && final_pte && req_id === i.U
+    resp.bits.vpn := req_vpn
+    resp.bits.pte := readPte
+    resp.bits.level := level
+  }
 
   switch (state) {
     is (s_ilde) {
-      when (io.tlb.req.fire) {
+      when (arbReq.fire) {
         state := s_memReq
-        req_vpn := io.tlb.req.bits.vpn
+        req_vpn := arbReq.bits.vpn
+        req_id := tlbReqArb.io.chosen
         level := 0.U
       }
     }
@@ -70,7 +82,7 @@ class PTW extends Module with MMUConst {
     }
     is (s_check) {
       when (final_pte) {
-        when (io.tlb.resp.fire) {
+        when (io.tlb(req_id).resp.fire) {
           state := s_ilde
         }
       }.otherwise {

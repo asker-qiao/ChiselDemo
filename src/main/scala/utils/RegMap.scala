@@ -2,7 +2,8 @@ package utils
 
 import chisel3._
 import chisel3.util._
-import soc.cpu.Config.XLEN
+import config.Config._
+
 
 object RegMap {
 

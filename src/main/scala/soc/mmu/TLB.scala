@@ -4,6 +4,7 @@ import chisel3._
 import chisel3.util._
 import soc.cpu._
 import utils.{SRAMSinglePort, SetAssocRandom}
+import config._
 
 case class MMUConfig
 (
@@ -47,6 +48,7 @@ trait MMUConst {
   val XLEN = Config.XLEN
 
   def getVpn(v_addr: UInt) = v_addr(VAddrBits, PageOffsetBits)
+
 }
 
 class TLBReq extends Bundle with MMUConst {
@@ -154,9 +156,13 @@ class TLB(cfg: L1TLBConfig) extends Module with MMUConst {
 
   val dataArray = Module(new TLBDataArray(cfg))
 
+  val s1_ready = Wire(Bool())
   /**
    * Stage 0
    */
+
+  io.cpu.req.ready := s1_ready
+
   dataArray.io.r.req.valid := io.cpu.req.valid
   dataArray.io.r.req.bits.vpn := getVpn(io.cpu.req.bits.v_addr)
 
@@ -172,10 +178,12 @@ class TLB(cfg: L1TLBConfig) extends Module with MMUConst {
   io.cpu.resp.bits.p_addr := s1_p_addr
 
   /**
-   * Miss ndler
+   * Miss handler
    */
   val s_idle :: s_ptwReq :: s_ptwResp :: s_replay :: Nil = Enum(4)
   val state = RegInit(s_idle)
+
+  s1_ready := state === s_idle && io.cpu.resp.ready
 
   io.ptw.req.valid := state === s_ptwReq
   io.ptw.req.bits.vpn := s1_v_addr(PageOffsetBits+vpnBits-1, PageOffsetBits)
