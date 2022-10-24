@@ -5,7 +5,7 @@ import difftest.UARTIO
 import bus._
 import utils._
 
-class UART[T <: Data](_type: T = new AXI4) extends BaseDevice(io_type = _type) {
+class UART[T <: Bundle](_type: T = new AXI4) extends BaseDevice(io_type = _type) {
   val uartio = IO(new UARTIO)
 
   val rxfifo = RegInit(0.U(32.W))
@@ -23,7 +23,7 @@ class UART[T <: Data](_type: T = new AXI4) extends BaseDevice(io_type = _type) {
     RegMap(0xc, ctrl)
   )
 
-  RegMap.generate(mapping, raddr(3,0), d_rdata,
+  RegMap.generate(mapping, raddr(3,0), rdata,
     waddr(3,0), wen, wdata, MaskExpand(wstrb >> waddr(2,0))
   )
 }

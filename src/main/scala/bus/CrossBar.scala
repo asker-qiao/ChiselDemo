@@ -3,7 +3,7 @@ package bus
 import chisel3._
 import chisel3.util._
 
-class CrossBar1toN[T <: Bundle](io_type: T = new AXI4, addrSpace: List[(Long, Long)]) extends Module with SimpleBusConst {
+class CrossBar1toN[T <: Bundle](io_type: T = new AXI4, addrSpace: List[(Long, Long)]) extends Module with CpuLinkConst {
   val numOut = addrSpace.length
   val io = IO(new Bundle() {
     val in = Flipped(io_type)
@@ -17,27 +17,34 @@ class CrossBar1toN[T <: Bundle](io_type: T = new AXI4, addrSpace: List[(Long, Lo
   }
 
   io.in match {
-    case in: MasterSimpleBus =>
+    case in: MasterCpuLinkBus =>
       val req = in.req
-      val out = io.out.asTypeOf(Vec(numOut, new MasterSimpleBus))
+      val out = io.out.asTypeOf(Vec(numOut, new MasterCpuLinkBus))
 
       val addr = req.bits.addr
       val outMatchVec = VecInit(addrSpace.map(
         range => (addr >= range._1.U && addr < (range._1 + range._2).U)))
       val outSelVec = VecInit(PriorityEncoderOH(outMatchVec))
 
-      req.ready := out.zip(outSelVec).map { case (o, m) => o.req.ready && m }.reduce(_|_)
+      req.ready := out.zip(outSelVec).map { case (o, m) => o.req.ready && m }.reduce(_ | _)
 
       for (i <- 0 until numOut) {
         out(i).req.valid := req.valid && outSelVec(i)
-        out(i).req.bits.apply(addr = req.bits.addr, id = req.bits.id, cmd = req.bits.cmd, size = req.bits.size,
-          wdata = req.bits.wdata, strb = req.bits.strb)
+        out(i).req.bits.apply(
+          addr = req.bits.addr,
+          id = req.bits.id,
+          cmd = req.bits.cmd,
+          size = req.bits.size,
+          wdata = req.bits.wdata,
+          strb = req.bits.strb)
       }
 
       // resp
-      val respArb = Module(new Arbiter(new SimpleBusResp, numOut))
-      respArb.io.in.zip(out).map{ case (i, o) => i <> o}
+      val respArb = Module(new Arbiter(new CpuLinkResp, numOut))
+      respArb.io.in.zip(out).map { case (i, o) => i <> o.resp }
       in.resp <> respArb.io.out
+
+      io.out <> out
     case in: AXI4  =>
       val out = io.out.asTypeOf(Vec(numOut, new AXI4))
       val arMatchVec = addrMatch(in.ar.bits.addr)
@@ -50,7 +57,7 @@ class CrossBar1toN[T <: Bundle](io_type: T = new AXI4, addrSpace: List[(Long, Lo
 
       // resp
       val respArb = Module(new Arbiter(new AXI4BundleR, numOut))
-      respArb.io.in.zip(out).map{ case (in, out) => in <> out}
+      respArb.io.in.zip(out).map{ case (in, o) => in <> o.r}
       in.r <> respArb.io.out
 
       /**
@@ -110,6 +117,7 @@ class CrossBar1toN[T <: Bundle](io_type: T = new AXI4, addrSpace: List[(Long, Lo
 
       out(w_port).b.ready := in.b.ready
       in.aw.ready := out(w_port).aw.ready || wreqInvalidAddr
+      io.out <> out
   }
 }
 
@@ -120,16 +128,16 @@ class CrossBarNto1[T <: Data](io_type: T = new AXI4, numIn: Int) extends Module 
   })
 
   io.out match {
-    case out: MasterSimpleBus =>
+    case out: MasterCpuLinkBus =>
       // req
-      val in = io.in.asTypeOf(Vec(numIn, new MasterSimpleBus))
+      val in = io.in.asTypeOf(Vec(numIn, new MasterCpuLinkBus))
 
       val idReg = RegInit(VecInit(Seq.fill(numIn)(0.U(AXI4Parameters.idBits.W))))
       val v = RegInit(VecInit(Seq.fill(numIn)(false.B)))
       val read_idReg = WireInit(idReg)
       val read_v = WireInit(v)
 
-      val inArb = Module(new Arbiter(new SimpleBusReq, numIn))
+      val inArb = Module(new Arbiter(new CpuLinkReq, numIn))
       inArb.io.in.zip(in).map{ case (arb_in, i) => arb_in <> i.req  }
       out.req <> inArb.io.out
       for (i <- 0 until numIn) {
@@ -151,6 +159,7 @@ class CrossBarNto1[T <: Data](io_type: T = new AXI4, numIn: Int) extends Module 
         in(i).resp.bits <> out.resp.bits
         in(i).resp.bits.id := read_idReg(i)
       }
+      io.in <> in
 
     case out: AXI4  =>
       val in = io.in.asTypeOf(Vec(numIn, new AXI4))
@@ -235,6 +244,7 @@ class CrossBarNto1[T <: Data](io_type: T = new AXI4, numIn: Int) extends Module 
           }
         }
       }
+      io.in <> in
   }
 
 }

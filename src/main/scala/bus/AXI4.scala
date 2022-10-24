@@ -108,7 +108,7 @@ class AXI4 extends AXI4Lite {
   override val b = Flipped(Decoupled(new AXI4BundleB()))
 }
 
-class AXI4CrossBar1toN(addrSpace: List[(Long, Long)]) extends Module with SimpleBusConst {
+class AXI4CrossBar1toN(addrSpace: List[(Long, Long)]) extends Module with CpuLinkConst {
   val numOut = addrSpace.length
   val io = IO(new Bundle() {
     val in = Flipped(new AXI4)

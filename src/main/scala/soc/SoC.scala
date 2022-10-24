@@ -6,7 +6,7 @@ import config.Config
 
 class SoC extends Module {
   val io = IO(new Bundle () {
-    val mem = new DoubleSimpleBus
+    val mem = new DoubleCpuLink
   })
 
   val core = Module(new RiscvCore)

@@ -10,20 +10,41 @@ import config.Config._
 
 class DeviceTop[T <: Bundle](io_type: T = new AXI4) extends Module with SimulatorConst {
   val io = IO(new Bundle() {
-    val in = Flipped(new AXI4)
+    val in = Flipped(io_type)
     val uart = new UARTIO
   })
 
-  val mem = Module(new Memory(io_type, memByte = memory_size, beatBytes))
-  val uart = Module(new UART(io_type))
-  val xbar = Module(new CrossBar1toN(io_type, deviceAddrSpace))
+//  val mem = Module(new MainMemory(io_type, memByte = memory_size, beatBytes))
+//  val uart = Module(new UART(io_type))
 
-  xbar.io.in <> io.in
+  io.in match {
+    case in: DoubleCpuLink  =>
+      val xbar = Module(new CrossBar1toN(new MasterCpuLinkBus, deviceAddrSpace))
+      val uart = Module(new UART(new DoubleCpuLink))
+      val mem = Module(new MainMemory(new DoubleCpuLink, memByte = memory_size, beatBytes))
+      xbar.io.in <> in.dmem
 
-  uart.io.in <> xbar.io.out(0)
-  mem.io.in <> xbar.io.out(1)
+      uart.io.in.imem := DontCare
+      uart.io.in.dmem <> xbar.io.out(0)
+      mem.io.in.dmem <> xbar.io.out(1)
+      mem.io.in.imem <> in.imem
 
-  io.uart <> uart.uartio
+      io.uart <> uart.uartio
+
+    case axi: AXI4 =>
+      val xbar = Module(new CrossBar1toN(new AXI4, deviceAddrSpace))
+      val uart = Module(new UART(new AXI4))
+      val mem = Module(new MainMemory(new AXI4, memByte = memory_size, beatBytes))
+
+      xbar.io.in <> axi
+
+      uart.io.in <> xbar.io.out(0)
+      mem.io.in <> xbar.io.out(1)
+      io.uart <> uart.uartio
+
+  }
+//  io.uart <> uart.uartio
+
 }
 
 abstract class BaseDevice[T <: Bundle](io_type: T = new AXI4) extends Module {
@@ -41,27 +62,40 @@ abstract class BaseDevice[T <: Bundle](io_type: T = new AXI4) extends Module {
   val ren   = Wire(Bool())
   val wen   = Wire(Bool())
 
-  val d_raddr = Wire(UInt(PAddrBits.W))
-  val d_rdata = Wire(UInt(XLEN.W))
+  val raddr2 = Wire(UInt(PAddrBits.W))
+  val rdata2 = Wire(UInt(XLEN.W))
 
-  d_raddr := DontCare
-  d_rdata := DontCare
+  raddr2 := DontCare
+  rdata2 := DontCare
 
   io.in match {
-    case in: DoubleSimpleBus =>
+    case in: DoubleCpuLink =>
+      in.dmem.req.ready := true.B
+      in.imem.req.ready := true.B
+      in.dmem.resp.valid := in.dmem.req.valid
+      in.imem.resp.valid := in.imem.req.valid
 
-      raddr := in.imem.req.bits.addr
-      d_raddr := in.dmem.req.bits.addr
+      raddr := in.dmem.req.bits.addr
+      in.dmem.resp.bits.data := rdata
 
-      in.imem.resp.bits.data := rdata
-      in.dmem.resp.bits.rdata := d_rdata
+      raddr2 := in.imem.req.bits.addr
+      in.imem.resp.bits.data := rdata2
+
+      in.imem.resp.bits.cmd := CpuLinkCmd.resp_read
+      in.dmem.resp.bits.cmd := Mux(in.dmem.req.bits.cmd === CpuLinkCmd.req_write, CpuLinkCmd.resp_write,
+        CpuLinkCmd.resp_read)
+      in.imem.resp.bits.exception := DontCare
+      in.dmem.resp.bits.exception := DontCare
+      in.dmem.resp.bits.id := in.dmem.req.bits.id
+      in.imem.resp.bits.id := in.imem.req.bits.id
+
 
       // write event
       waddr := in.dmem.req.bits.addr
       wdata := in.dmem.req.bits.wdata
       wstrb := in.dmem.req.bits.strb
       ren := in.dmem.resp.fire
-      wen := SimpleBusCmd.isWriteReq(cmd = in.dmem.req.bits.cmd)
+      wen := CpuLinkCmd.isWriteReq(cmd = in.dmem.req.bits.cmd)
 
     case axi4: AXI4 =>
       // read

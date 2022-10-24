@@ -75,7 +75,7 @@ class AccessMem extends Module {
   val io = IO(new Bundle() {
     val in = Flipped(DecoupledIO(new ExuOutput))
     val out = DecoupledIO(new WriteBackIO)
-    val dmem = new AccessMemBus
+    val dmem = new MasterCpuLinkBus
   })
 
   val (valid, mem_en, mem_op, exe_result) = (io.in.valid, 
@@ -90,20 +90,23 @@ class AccessMem extends Module {
   // load or store req
   io.dmem.req.valid      := valid && mem_en.asBool()
   io.dmem.req.bits.addr  := req_addr
-  io.dmem.req.bits.cmd   := Mux(MemOpType.isStore(mem_op), SimpleBusCmd.req_write, SimpleBusCmd.req_read)
+  io.dmem.req.bits.cmd   := Mux(MemOpType.isStore(mem_op), CpuLinkCmd.req_write, CpuLinkCmd.req_read)
   io.dmem.req.bits.wdata := Mux(MemOpType.isStore(mem_op), MemOpType.WriteData(addr = req_addr, rs2 = io.in.bits.rs2_data), 0.U)
   io.dmem.req.bits.strb  := MemOpType.genMask(addr = req_addr, size = MemOpType.genSize(mem_op))
-  // io.dmem.req.bits.wen    := valid && mem_en.asBool() && MemOpType.isStore(mem_op)
+  io.dmem.req.bits.size  := MemOpType.genSize(op = mem_op)
+  io.dmem.req.bits.id := Mux(MemOpType.isStore(mem_op), CPUBusReqType.store, CPUBusReqType.load)
+
   //  resp
   io.dmem.resp.ready := true.B
 
-  val load_data = MemOpType.genWriteBackData(read_words = io.dmem.resp.bits.rdata, mem_op = mem_op)
+  val load_data = MemOpType.genWriteBackData(read_words = io.dmem.resp.bits.data, mem_op = mem_op)
 
   val wb_data = Mux(mem_en, load_data, exe_result)
 
   io.out.valid            := valid && ((!mem_en) || (mem_en && io.dmem.resp.valid))
   io.out.bits.pc          := io.in.bits.pc
   io.out.bits.instr       := io.in.bits.instr
+  io.out.bits.exception   := io.in.bits.exception
   io.out.bits.instr_type  := io.in.bits.instr_type
   io.out.bits.wb_addr     := io.in.bits.wb_addr
   io.out.bits.rf_wen      := io.in.bits.rf_wen

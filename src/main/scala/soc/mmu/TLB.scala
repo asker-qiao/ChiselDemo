@@ -1,5 +1,6 @@
 package soc.mmu
 
+import bus.CPUBusReqType
 import chisel3._
 import chisel3.util._
 import soc.cpu._
@@ -26,8 +27,8 @@ case class L1TLBConfig
   entrySize: Int = 8,
 ) {
   val isDTlb = name.toLowerCase match {
-    case "itlb"    => 0
-    case "dtlb"    => 1
+    case "itlb"    => false
+    case "dtlb"    => true
     case t => throw new IllegalArgumentException("L1TLBConfig name field can only be iTLB or dTLB")
   }
 }
@@ -53,10 +54,21 @@ trait MMUConst {
 
 class TLBReq extends Bundle with MMUConst {
   val v_addr = UInt(VAddrBits.W)
+  val req_type = CPUBusReqType()
 }
 
 class TLBResp extends Bundle with MMUConst {
   val p_addr = UInt(PAddrBits.W)
+  val isPF = new Bundle() {
+    val load = Bool()
+    val store = Bool()
+    val instr = Bool()
+  }
+  val isAF = new Bundle() {
+    val load = Bool()
+    val store = Bool()
+    val instr = Bool()
+  }
 }
 
 class TLBMasterIO extends Bundle {
@@ -92,15 +104,17 @@ class PageTableEntry extends Bundle {
 class TLBEntry extends Bundle with MMUConst {
   val tag = UInt(vpnBits.W) // virtual address vpn
   val pte = new PageTableEntry
+  val pf = Bool()
   val level = UInt(LevelBits.W)
 
   def hit(vpn: UInt) = {
     this.tag === vpn
   }
 
-  def apply(vpn: UInt, pte: PageTableEntry, level: UInt) = {
+  def apply(vpn: UInt, pte: PageTableEntry, pf: Bool, level: UInt) = {
     this.tag    := vpn
     this.pte    := pte
+    this.pf     := pf
     this.level  := level
     this
   }
@@ -112,6 +126,7 @@ class TLBDataArrayReq extends Bundle with MMUConst {
 
 class TLBDataArrayResp extends Bundle with MMUConst {
   val pte = new PageTableEntry
+  val pf = Bool()
   val miss = Bool()
 }
 
@@ -144,7 +159,8 @@ class TLBDataArray(cfg: L1TLBConfig) extends Module with MMUConst {
   val s1_hitVec = RegNext(VecInit(s0_hitVec))
 
   io.r.resp.valid := s1_tlb_valid
-  io.r.resp.bits.pte := s1_tlb_entry
+  io.r.resp.bits.pte := s1_tlb_entry.pte
+  io.r.resp.bits.pf := s1_tlb_entry.pf
   io.r.resp.bits.miss := s1_tlb_valid && !s1_hitVec.asUInt.orR
 }
 
@@ -152,11 +168,18 @@ class TLB(cfg: L1TLBConfig) extends Module with MMUConst {
   val io = IO(new Bundle() {
     val cpu = new TLBMasterIO
     val ptw = Flipped(new PTWMasterIO)
+    val fromCSR = Input(new CSRtoMMUBundle)
   })
+
+  val mode = if (cfg.isDTlb) io.fromCSR.d_mode else io.fromCSR.i_mode
+  val satp = io.fromCSR.satp
+
+  val vmEnable = satp.mode(satp.mode.getWidth - 1) && mode < Priv.M
 
   val dataArray = Module(new TLBDataArray(cfg))
 
   val s1_ready = Wire(Bool())
+
   /**
    * Stage 0
    */
@@ -170,12 +193,23 @@ class TLB(cfg: L1TLBConfig) extends Module with MMUConst {
    * Stage 1
    */
   val s1_valid = RegNext(io.cpu.req.valid)
+  val s1_bits = RegEnable(io.cpu.req.bits, io.cpu.req.fire)
   val s1_v_addr = RegEnable(io.cpu.req.bits.v_addr, io.cpu.req.fire)
   val pte = dataArray.io.r.resp.bits.pte
   val s1_p_addr = Cat(pte.ppn, s1_v_addr(PageOffsetBits-1, 0))
-  val miss = dataArray.io.r.resp.bits.miss
+  val miss = vmEnable && dataArray.io.r.resp.bits.miss
+  val pf = dataArray.io.r.resp.bits.pf
+
   io.cpu.resp.valid := RegNext(io.cpu.req.fire)
-  io.cpu.resp.bits.p_addr := s1_p_addr
+  io.cpu.resp.bits.p_addr := Mux(vmEnable, s1_p_addr, s1_v_addr)
+
+  // PageFault Exception
+  io.cpu.resp.bits.isPF.instr := pf && CPUBusReqType.isInstr(s1_bits.req_type)
+  io.cpu.resp.bits.isPF.load  := pf && CPUBusReqType.isLoad(s1_bits.req_type)
+  io.cpu.resp.bits.isPF.store := pf && CPUBusReqType.isStore(s1_bits.req_type)
+
+  // TODO:
+  io.cpu.resp.bits.isAF := DontCare
 
   /**
    * Miss handler
@@ -189,7 +223,9 @@ class TLB(cfg: L1TLBConfig) extends Module with MMUConst {
   io.ptw.req.bits.vpn := s1_v_addr(PageOffsetBits+vpnBits-1, PageOffsetBits)
 
   dataArray.io.w.valid := state === s_ptwResp && io.ptw.resp.fire
-  dataArray.io.w.bits.entry := (new TLBEntry).apply(vpn = io.ptw.resp.bits.vpn, pte = io.ptw.resp.bits.pte,
+  dataArray.io.w.bits.entry := (new TLBEntry).apply(vpn = io.ptw.resp.bits.vpn,
+    pte = io.ptw.resp.bits.pte,
+    pf = io.ptw.resp.bits.pf,
     level = io.ptw.resp.bits.level)
 
   switch (state) {

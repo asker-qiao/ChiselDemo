@@ -4,6 +4,7 @@ import chisel3._
 import chisel3.util._
 import bus._
 import config._
+import soc.cpu.CSRtoMMUBundle
 
 class PTWReq extends Bundle with MMUConst {
   val vpn = UInt(vpnBits.W)
@@ -11,6 +12,7 @@ class PTWReq extends Bundle with MMUConst {
 
 class PTWResp extends PTWReq with MMUConst {
   val pte = new PageTableEntry
+  val pf = Bool()
   val level = UInt(LevelBits.W)
 }
 
@@ -23,7 +25,8 @@ class PTW extends Module with MMUConst {
   val numReq = 2
   val io = IO(new Bundle() {
     val tlb = Vec(numReq, new PTWMasterIO)
-    val mem = new MasterSimpleBus
+    val mem = new MasterCpuLinkBus
+    val csr = Input(new CSRtoMMUBundle)
   })
 
   val tlbReqArb     = Module(new Arbiter(new PTWReq, numReq))
@@ -33,7 +36,7 @@ class PTW extends Module with MMUConst {
 
 
   val req_vpn = RegInit(0.U(vpnBits.W))
-  val req_id = RegInit(0.U(1.W))
+  val req_source = RegInit(0.U(1.W))
   val level = RegInit(0.U(LevelBits))
   val readPte = RegInit(0.U.asTypeOf(new PageTableEntry))
 
@@ -45,7 +48,7 @@ class PTW extends Module with MMUConst {
   val pte_addr = (((readPte.ppn << vpnSubBits) | req_vpn) << log2Ceil(XLEN / 8))(Config.PAddrBits - 1, 0)
 
   io.mem.req.valid := state === s_memReq
-  io.mem.req.bits.apply(addr = pte_addr, id = 0.U, cmd = SimpleBusCmd.req_read, size = "b11".U)
+  io.mem.req.bits.apply(addr = pte_addr, id = 0.U, cmd = CpuLinkCmd.req_read, size = "b11".U)
 
   val pageFault = readPte.isPageFault(level)
   val max_level = (PageTableLevel-1).U
@@ -54,9 +57,10 @@ class PTW extends Module with MMUConst {
   for (i <- 0 until numReq) {
     val resp = io.tlb(i).resp
 
-    resp.valid := state === s_check && final_pte && req_id === i.U
+    resp.valid := state === s_check && final_pte && req_source === i.U
     resp.bits.vpn := req_vpn
     resp.bits.pte := readPte
+    resp.bits.pf  := pageFault
     resp.bits.level := level
   }
 
@@ -65,7 +69,8 @@ class PTW extends Module with MMUConst {
       when (arbReq.fire) {
         state := s_memReq
         req_vpn := arbReq.bits.vpn
-        req_id := tlbReqArb.io.chosen
+        req_source := tlbReqArb.io.chosen
+        readPte.ppn := io.csr.satp.ppn
         level := 0.U
       }
     }
@@ -82,7 +87,7 @@ class PTW extends Module with MMUConst {
     }
     is (s_check) {
       when (final_pte) {
-        when (io.tlb(req_id).resp.fire) {
+        when (io.tlb(req_source).resp.fire) {
           state := s_ilde
         }
       }.otherwise {

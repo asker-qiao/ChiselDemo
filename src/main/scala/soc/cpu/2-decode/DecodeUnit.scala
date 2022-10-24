@@ -101,9 +101,16 @@ object MemType {
 }
 
 
-object RfWen {
-  val N = 0.U(1.W)
-  val Y = 1.U(1.W)
+object WBCtrl {
+  def apply() = UInt(4.W)
+
+  val N = 0.U
+  val Y = 1.U  // write executing data to Int Regfile
+  val CSR_R = 2.U   // write csr data to Int-Regfile
+  val CSR_S = 3.U
+  val CSR_C = 4.U
+  val CSR_W = 5.U
+  val CSR_PRIV = 6.U
 }
 
 object Decode {
@@ -115,9 +122,9 @@ object Decode {
   val idx_mem_op = 6
   val idx_rf_wen = 7
 
-  val decodeDefault = List(InstrType.illegal, SrcType.no, SrcType.no, FuType.alu, ALUOpType.ADD, MemType.N, MemOpType.no, RfWen.N)
+  val decodeDefault = List(InstrType.illegal, SrcType.no, SrcType.no, FuType.alu, ALUOpType.ADD, MemType.N, MemOpType.no, WBCtrl.N)
 
-  def DecodeTable = RV64I.table ++ SelfDefineTrap.table
+  def DecodeTable = RV64I.table ++ RVZicsr.table ++ SelfDefineTrap.table
 }
 
 trait RISCVConstants {
@@ -140,6 +147,8 @@ class DecodeUnit extends Module with RISCVConstants {
     val out = DecoupledIO(new DecodeCtrlSignal)
     // read reg file
     val read = Vec(2, Flipped(new RegfileReadIO))
+    // read csr
+    val fromCSR = Flipped(new CSRtoDecodeBundle())
   })
 
   io.in.ready := io.out.ready
@@ -178,17 +187,21 @@ class DecodeUnit extends Module with RISCVConstants {
     (op1_sel === SrcType.reg)   -> rs1_data,
     (op1_sel === SrcType.imm)   -> imm,
     (op1_sel === SrcType.pc)    -> pc,
-  )).asUInt()
+  )).asUInt
   val op2_data = MuxCase(0.U, Array(
     (op2_sel === SrcType.reg)   -> rs2_data,
     (op2_sel === SrcType.imm)   -> imm,
     (op2_sel === SrcType.pc)    -> pc,
-  )).asUInt()
+  )).asUInt
+
+  // CSR Read
+  io.fromCSR := DontCare
 
   // output to next stage
   io.out.valid            := io.in.valid
   io.out.bits.pc          := pc
   io.out.bits.instr_type  := instr_type
+  io.out.bits.exception   := io.in.bits.exception
   io.out.bits.instr       := instr
   io.out.bits.op1_data    := op1_data
   io.out.bits.op2_data    := op2_data

@@ -29,10 +29,9 @@ class SimTop extends Module {
   })
 
   val soc = Module(new SoC())
-  val memory = Module(new RAM(io_type = new DoubleSimpleBus()))
-  val device = Module(new DeviceTop(io_type = new DoubleSimpleBus))
+  val device = Module(new DeviceTop(io_type = new DoubleCpuLink))
 
-  soc.io.mem <> memory.io.in
+  soc.io.mem <> device.io.in
   io.uart <> device.io.uart
 }
 

@@ -50,14 +50,20 @@ object RV32I {
   def SH      = BitPat("b???????_?????_?????_001_?????_0100011")
   def SW      = BitPat("b???????_?????_?????_010_?????_0100011")
 
+  def ECALL   = BitPat("b00000000000000000000000001110011")
+
   // decode info table
   val table = Array(
-    AUIPC -> List(InstrType.u, SrcType.pc,  SrcType.imm, FuType.alu, ALUOpType.ADD, MemType.N, MemOpType.no, RfWen.Y),
+    AUIPC -> List(InstrType.u, SrcType.pc,  SrcType.imm, FuType.alu, ALUOpType.ADD, MemType.N, MemOpType.no, WBCtrl.Y),
 
-    ADDI  -> List(InstrType.i, SrcType.reg, SrcType.imm, FuType.alu, ALUOpType.ADD, MemType.N, MemOpType.no, RfWen.Y),
+    ADDI  -> List(InstrType.i, SrcType.reg, SrcType.imm, FuType.alu, ALUOpType.ADD, MemType.N, MemOpType.no, WBCtrl.Y),
 
-    JAL   -> List(InstrType.j, SrcType.pc,  SrcType.imm, FuType.jbu, JBUType.jal,   MemType.N, MemOpType.no, RfWen.Y),
-    JALR  -> List(InstrType.i, SrcType.reg, SrcType.imm, FuType.jbu, JBUType.jalr,  MemType.N, MemOpType.no, RfWen.Y)
+    // Control Transfer Instructions
+    JAL   -> List(InstrType.j, SrcType.pc,  SrcType.imm, FuType.jbu, JBUType.jal,   MemType.N, MemOpType.no, WBCtrl.Y),
+    JALR  -> List(InstrType.i, SrcType.reg, SrcType.imm, FuType.jbu, JBUType.jalr,  MemType.N, MemOpType.no, WBCtrl.Y),
+
+    // Environment Call and Breakpoints
+    ECALL ->  List(InstrType.i, SrcType.no, SrcType.no, FuType.alu, ALUOpType.ADD, MemType.N, MemOpType.no, WBCtrl.CSR_PRIV)
   )
 }
 
@@ -78,6 +84,6 @@ object RV64I {
   def SD      = BitPat("b???????_?????_?????_011_?????_0100011")
 
   val table = RV32I.table ++ Array(
-    SD     -> List(InstrType.s, SrcType.reg, SrcType.reg, FuType.alu, ALUOpType.ADD,   MemType.Y, MemOpType.sd, RfWen.N)
+    SD     -> List(InstrType.s, SrcType.reg, SrcType.imm, FuType.alu, ALUOpType.ADD,   MemType.Y, MemOpType.sd, WBCtrl.N)
   )
 }

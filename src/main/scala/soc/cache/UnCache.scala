@@ -7,11 +7,11 @@ import config._
 
 class UnCache extends Module with L1CacheConst {
   val io = IO(new Bundle() {
-    val cpu = Vec(2, Flipped(new MasterSimpleBus))
+    val cpu = Vec(2, Flipped(new MasterCpuLinkBus))
     val mem = new AXI4
   })
 
-  val arb = Module(new Arbiter(new SimpleBusReq, 2))
+  val arb = Module(new Arbiter(new CpuLinkReq, 2))
   arb.io.in(0) <> io.cpu(0).req
   arb.io.in(1) <> io.cpu(1).req
   val arbReq = arb.io.out
@@ -45,14 +45,14 @@ class UnCache extends Module with L1CacheConst {
     io.cpu(i).resp.valid := io.mem.r.valid && req_source === i.U
     io.mem.r.ready := io.cpu(req_source).resp.ready
     io.cpu(i).resp.bits.apply(data = io.mem.r.bits.data, id = io.mem.r.bits.id,
-      cmd = Mux(reqReg.cmd === SimpleBusCmd.req_read, SimpleBusCmd.resp_read, SimpleBusCmd.resp_write))
+      cmd = Mux(reqReg.cmd === CpuLinkCmd.req_read, CpuLinkCmd.resp_read, CpuLinkCmd.resp_write))
   }
 
   switch (state) {
     is (s_idle) {
       when (arbReq.fire) {
         req_source := arb.io.chosen
-        when (SimpleBusCmd.isWriteReq(arbReq.bits.cmd)) {
+        when (CpuLinkCmd.isWriteReq(arbReq.bits.cmd)) {
           state := s_memWriteAddrReq
         }.otherwise {
           state := s_memReadReq

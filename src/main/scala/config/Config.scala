@@ -10,6 +10,7 @@ object Config {
   val VAddrBits: Int = 32
   val PAddrBits: Int = 32
   val ResetPC = "h8000_0000"
+  val DiffTest: Boolean = true
 
   val cacheableAddrSpace = List((0x80000000L, 0x80000000L))
   val non_cacheableAddrSpace = List(

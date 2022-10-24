@@ -10,7 +10,7 @@ import soc.mmu._
 
 class RiscvCore extends Module {
   val io = IO(new Bundle {
-    val mem = new DoubleSimpleBus
+    val mem = new DoubleCpuLink
   })
 
   val cpu = Module(new SingleCycleCPU)
@@ -23,7 +23,7 @@ class RiscvCore extends Module {
 
 class RiscvCore1 extends Module {
   val io = IO(new Bundle {
-    val mem = new DoubleSimpleBus
+    val mem = new DoubleCpuLink
   })
 
   val cpu     = Module(new FiveStageCPU)

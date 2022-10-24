@@ -4,6 +4,7 @@ import chisel3._
 import chisel3.util._
 import bus._
 import config._
+import soc.cpu.ExceptionCode
 import soc.mmu.TLBMasterIO
 import utils.{MaskData, MaskExpand, ReplacementPolicy, SRAMSinglePort}
 
@@ -46,7 +47,7 @@ trait L1CacheConst {
   def addrMatch(addr: UInt, addrSpace: List[(Long, Long)]) = {
     val matchVec = VecInit(addrSpace.map(
       range => (addr >= range._1.U && addr < (range._1 + range._2).U)))
-    VecInit(PriorityEncoderOH(matchVec))
+    matchVec.asUInt.orR
   }
 }
 
@@ -62,7 +63,7 @@ class L1DataArrayTemplateResp[T <: Data](_type: T) extends Bundle with L1CacheCo
 }
 
 class L1DataArrayTemplateBus[T <: Data](_type: T) extends Bundle with L1CacheConst {
-  val req = Flipped(DecoupledIO(new L1DataArrayTemplateReq))
+  val req = Flipped(DecoupledIO(new L1DataArrayTemplateReq(_type)))
   val resp = DecoupledIO(new Bundle() {
     val rdata = _type
   })
@@ -105,9 +106,9 @@ class DataBundle extends Bundle with L1CacheConst {
 
 class L1Cache extends Module with L1CacheConst {
   val io = IO(new Bundle() {
-    val cpu = Flipped(new MasterSimpleBus)
+    val cpu = Flipped(new MasterCpuLinkBus)
     val tlb = Flipped(new TLBMasterIO)
-    val uncache = new MasterSimpleBus
+    val uncache = new MasterCpuLinkBus
     val mem = new AXI4
   })
 
@@ -129,6 +130,7 @@ class L1Cache extends Module with L1CacheConst {
 
   io.tlb.req.valid := io.cpu.req.valid
   io.tlb.req.bits.v_addr := io.cpu.req.bits.addr
+  io.tlb.req.bits.req_type := io.cpu.req.bits.id
 
   /**
    * Stage 1:
@@ -137,14 +139,21 @@ class L1Cache extends Module with L1CacheConst {
   val s1ReqIndex = 1
   val dataArb = Module(new Arbiter(new L1DataArrayTemplateReq(new DataBundle), 2))
 
+  val s1_valid = io.cpu.req.valid
   val s1_cmd = RegEnable(next = io.cpu.req.bits.cmd, init = 0.U, enable = s0_fire)
   val s1_wdata = RegEnable(next = io.cpu.req.bits.wdata, init = 0.U, enable = s0_fire)
   val s1_strb = RegEnable(next = io.cpu.req.bits.strb, init = 0.U, enable = s0_fire)
   val s1_id = RegEnable(next = io.cpu.req.bits.id, init = 0.U, enable = s0_fire)
   val s1_p_addr = io.tlb.resp.bits.p_addr
+
+  val s1_exceptionVec = WireInit(0.U.asTypeOf(Vec(ExceptionCode.total, Bool())))
+  s1_exceptionVec(ExceptionCode.InstrPageFault) := io.tlb.resp.bits.isPF.instr
+  s1_exceptionVec(ExceptionCode.LoadPageFault)  := io.tlb.resp.bits.isPF.instr
+  s1_exceptionVec(ExceptionCode.StorePageFault) := io.tlb.resp.bits.isPF.instr
+
   val cacheable = addrMatch(addr = s1_p_addr, addrSpace = Config.cacheableAddrSpace)   // TODO: fix it by pmp
   io.tlb.resp.ready := s2_ready
-  val s1_fire = io.tlb.resp.fire
+  val s1_fire = io.tlb.resp.fire && cacheable
 
   dataArb.io.in(s1ReqIndex).valid := s1_fire
   dataArb.io.in(s1ReqIndex).bits.addr := getIndex(s1_p_addr)
@@ -170,7 +179,9 @@ class L1Cache extends Module with L1CacheConst {
   val s2_cmd    = RegEnable(next = s1_cmd, init = 0.U, enable = s1_fire)
   val s2_wdata  = RegEnable(next = s1_wdata, init = 0.U, enable = s1_fire)
   val s2_strb   = RegEnable(next = s1_strb, init = 0.U, enable = s1_fire)
-  val s2_id   = RegEnable(next = s1_id, init = 0.U, enable = s1_fire)
+  val s2_id     = RegEnable(next = s1_id, init = 0.U, enable = s1_fire)
+  val s2_exceptionVec = RegEnable(next = s1_exceptionVec, enable = s1_fire)
+  val hasException = s2_exceptionVec.asUInt.orR
 
   val readLines = dataArray.io.resp.bits.rdata
   val metaLines = metaArray.io.resp.bits.rdata
@@ -179,6 +190,8 @@ class L1Cache extends Module with L1CacheConst {
   val hitWay = OHToUInt(hitVec)
   val hitLine = readLines(hitWay).data
   val hitXlenData = hitLine(getXlenOffset(s2_p_addr))
+
+  val miss = s2_valid && !hasHit && !hasException
 
   val replace = ReplacementPolicy.fromString("random", Sets, Ways)
   val replaceWay = replace.way(getIndex(s2_p_addr))
@@ -198,9 +211,14 @@ class L1Cache extends Module with L1CacheConst {
    * Resp to CPU
    */
 
-  io.cpu.resp.valid := (state === s_idle && s2_valid && hasHit) || io.uncache.resp.valid
-  io.cpu.resp.bits.apply(data = hitXlenData, id = s2_id,
-    cmd = Mux(SimpleBusCmd.isWriteReq(s2_cmd), SimpleBusCmd.resp_write, SimpleBusCmd.req_read))
+  io.cpu.resp.valid := (state === s_idle && !miss) || io.uncache.resp.valid
+  val cacheResp = Wire(new CpuLinkResp)
+  cacheResp.data := hitXlenData
+  cacheResp.id := s2_id
+  cacheResp.cmd := Mux(CpuLinkCmd.isWriteReq(s2_cmd), CpuLinkCmd.resp_write, CpuLinkCmd.req_read)
+
+  val uncacheResp = io.uncache.resp.bits
+  io.cpu.resp.bits := Mux(io.uncache.resp.valid, uncacheResp, cacheResp)
 
   /**
    * Cache Miss Handler Unit
@@ -244,7 +262,7 @@ class L1Cache extends Module with L1CacheConst {
 
   switch (state) {
     is (s_idle) {
-      when (s2_valid && !hasHit) {
+      when (miss) {
         when (replaceLineIsDirty) {
           state := s_memWriteAddrReq
           lineBuffer := readLines(replaceWay)

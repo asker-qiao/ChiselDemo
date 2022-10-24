@@ -5,7 +5,7 @@ import chisel3.util._
 import soc.cpu._
 import config._
 
-object SimpleBusCmd {
+object CpuLinkCmd {
   def apply() = UInt(2.W)
 
   def req_read    = "b00".U
@@ -16,24 +16,39 @@ object SimpleBusCmd {
   def isWriteReq(cmd: UInt) = cmd === req_write
 }
 
-trait SimpleBusConst {
-  val idBits = 4
+object CPUBusReqType {
+  def apply() = UInt(2.W)
+
+  val instr = 0.U
+  val load = 1.U
+  val store = 2.U
+
+  def isInstr(_type: UInt) = _type === this.instr
+  def isLoad(_type: UInt) = _type === this.load
+  def isStore(_type: UInt) = _type === this.store
+  def isDTLBReq(_type: UInt) = _type === this.load && _type === this.store
 }
 
-class SimpleBusBundle extends Bundle with SimpleBusConst
+trait CpuLinkConst {
+  val idBits = 4
+  val typeBits = 2
+}
 
-class SimpleBusInstrReq extends SimpleBusBundle {
+class CpuLinkBundle extends Bundle with CpuLinkConst
+
+class SimpleBusInstrReq extends CpuLinkBundle {
   val addr = UInt(Config.AddrBits.W)
 }
 
 class SimpleBusInstrResp extends Bundle {
   val data = UInt(Config.XLEN.W)
+  val exception = Vec(ExceptionCode.total, Bool())
 }
 
-class SimpleBusReq extends SimpleBusBundle {
+class CpuLinkReq extends CpuLinkBundle {
   val addr = UInt(Config.AddrBits.W)
-  val id = UInt(idBits.W)
-  val cmd = SimpleBusCmd()
+  val id = CPUBusReqType()
+  val cmd = CpuLinkCmd()
   val wdata = UInt(Config.XLEN.W)
   val strb = UInt(8.W)
   val size = UInt(2.W)
@@ -48,10 +63,11 @@ class SimpleBusReq extends SimpleBusBundle {
   }
 }
 
-class SimpleBusResp extends SimpleBusBundle {
+class CpuLinkResp extends CpuLinkBundle {
   val data = UInt(Config.XLEN.W)
-  val id = UInt(idBits.W)
-  val cmd = SimpleBusCmd()
+  val cmd = CpuLinkCmd()
+  val id = CPUBusReqType()
+  val exception = Vec(ExceptionCode.total, Bool())
 
   def apply(data: UInt, id: UInt, cmd: UInt) = {
     this.data := data
@@ -60,45 +76,21 @@ class SimpleBusResp extends SimpleBusBundle {
   }
 }
 
-class MasterSimpleBus extends SimpleBusBundle {
-  val req = DecoupledIO(new SimpleBusReq)
-  val resp = Flipped(DecoupledIO(new SimpleBusResp))
+class MasterCpuLinkBus extends CpuLinkBundle {
+  val req = DecoupledIO(new CpuLinkReq)
+  val resp = Flipped(DecoupledIO(new CpuLinkResp))
 }
 
-class InstrFetchBus extends Bundle {
-  val req   = Decoupled(new SimpleBusInstrReq)
-  val resp  = Flipped(DecoupledIO(new SimpleBusInstrResp))
+class DoubleCpuLink extends Bundle {
+  val imem = new MasterCpuLinkBus
+  val dmem = new MasterCpuLinkBus
 }
 
-class SimpleBusAccessMemReq extends Bundle {
-  val addr  = UInt(Config.AddrBits.W)
-  val wdata = UInt(Config.XLEN.W)
-  val strb  = UInt((Config.XLEN / 8).W)
-  val cmd   = SimpleBusCmd()
-  // val wen   = Bool()
-}
-
-class SimpleBusAccessMemResp extends Bundle {
-  val rdata = UInt(Config.XLEN.W)
-}
-
-class AccessMemBus extends Bundle {
-  val req   = Decoupled(new SimpleBusAccessMemReq)
-  val resp  = Flipped(DecoupledIO(new SimpleBusAccessMemResp))
-}
-
-class DoubleSimpleBus extends Bundle {
-  val imem = new InstrFetchBus
-  val dmem = new AccessMemBus
-  // override def cloneType: SimpleBus.this.type = 
-  //   new SimpleBus(num_read, num_write).asInstanceOf[this.type]
-}
-
-class SimpleBusCrossBar1toN(addrSpace: List[(Long, Long)]) extends Module with SimpleBusConst {
+class CpuLinkCrossBar1toN(addrSpace: List[(Long, Long)]) extends Module with CpuLinkConst {
   val numOut = addrSpace.length
   val io = IO(new Bundle() {
-    val in = Flipped(new MasterSimpleBus)
-    val out = Vec(numOut, new MasterSimpleBus)
+    val in = Flipped(new MasterCpuLinkBus)
+    val out = Vec(numOut, new MasterCpuLinkBus)
   })
 
   val req = io.in.req
@@ -122,7 +114,7 @@ class SimpleBusCrossBar1toN(addrSpace: List[(Long, Long)]) extends Module with S
   }
 
   // resp
-  val respArb = Module(new Arbiter(new SimpleBusResp, numOut))
+  val respArb = Module(new Arbiter(new CpuLinkResp, numOut))
   respArb.io.in.zip(io.out).map{ case (in, out) => in <> out}
   io.in.resp <> respArb.io.out
 }
