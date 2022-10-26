@@ -43,9 +43,9 @@ class PTW extends Module with MMUConst {
   val s_ilde :: s_memReq :: s_memResp :: s_check :: Nil = Enum(4)
   val state = RegInit(s_ilde)
 
-  io.tlb.map(_.req.ready := state === s_ilde)
+  arbReq.ready := state === s_ilde
 
-  val pte_addr = (((readPte.ppn << vpnSubBits) | req_vpn) << log2Ceil(XLEN / 8))(Config.PAddrBits - 1, 0)
+  val pte_addr = (((readPte.ppn << vpnSubBits) | req_vpn) << log2Ceil(XLEN / 8))(PAddrBits - 1, 0)
 
   io.mem.req.valid := state === s_memReq
   io.mem.req.bits.apply(addr = pte_addr, id = 0.U, cmd = CpuLinkCmd.req_read, size = "b11".U)

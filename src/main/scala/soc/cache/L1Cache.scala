@@ -148,8 +148,8 @@ class L1Cache extends Module with L1CacheConst {
 
   val s1_exceptionVec = WireInit(0.U.asTypeOf(Vec(ExceptionCode.total, Bool())))
   s1_exceptionVec(ExceptionCode.InstrPageFault) := io.tlb.resp.bits.isPF.instr
-  s1_exceptionVec(ExceptionCode.LoadPageFault)  := io.tlb.resp.bits.isPF.instr
-  s1_exceptionVec(ExceptionCode.StorePageFault) := io.tlb.resp.bits.isPF.instr
+  s1_exceptionVec(ExceptionCode.LoadPageFault)  := io.tlb.resp.bits.isPF.load
+  s1_exceptionVec(ExceptionCode.StorePageFault) := io.tlb.resp.bits.isPF.store
 
   val cacheable = addrMatch(addr = s1_p_addr, addrSpace = Config.cacheableAddrSpace)   // TODO: fix it by pmp
   io.tlb.resp.ready := s2_ready
@@ -206,6 +206,7 @@ class L1Cache extends Module with L1CacheConst {
     newLine(getXlenOffset(s2_p_addr)) := xlenAfterWrite
     newLine
   }
+  // TODO: write line
 
   /**
    * Resp to CPU

@@ -204,9 +204,9 @@ class TLB(cfg: L1TLBConfig) extends Module with MMUConst {
   io.cpu.resp.bits.p_addr := Mux(vmEnable, s1_p_addr, s1_v_addr)
 
   // PageFault Exception
-  io.cpu.resp.bits.isPF.instr := pf && CPUBusReqType.isInstr(s1_bits.req_type)
-  io.cpu.resp.bits.isPF.load  := pf && CPUBusReqType.isLoad(s1_bits.req_type)
-  io.cpu.resp.bits.isPF.store := pf && CPUBusReqType.isStore(s1_bits.req_type)
+  io.cpu.resp.bits.isPF.instr := pf && CPUBusReqType.isInstr(s1_bits.req_type)  && vmEnable
+  io.cpu.resp.bits.isPF.load  := pf && CPUBusReqType.isLoad(s1_bits.req_type)   && vmEnable
+  io.cpu.resp.bits.isPF.store := pf && CPUBusReqType.isStore(s1_bits.req_type)  && vmEnable
 
   // TODO:
   io.cpu.resp.bits.isAF := DontCare

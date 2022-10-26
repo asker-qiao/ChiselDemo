@@ -13,10 +13,10 @@ class RiscvCore extends Module {
     val mem = new DoubleCpuLink
   })
 
-  val cpu = Module(new SingleCycleCPU)
+  val cpu = Module(new CPU(hasPipeLine = false))
 
 
-  // 
+  // link to memory
   io.mem.imem <> cpu.io.imem
   io.mem.dmem <> cpu.io.dmem
 }
@@ -26,7 +26,7 @@ class RiscvCore1 extends Module {
     val mem = new DoubleCpuLink
   })
 
-  val cpu     = Module(new FiveStageCPU)
+  val cpu     = Module(new CPU(hasPipeLine = true))
   val icache  = Module(new L1Cache)
   val dcache  = Module(new L1Cache)
   val uncache = Module(new UnCache)
@@ -50,7 +50,7 @@ class RiscvCore2 extends Module {
     }
   })
 
-  val cpu     = Module(new FiveStageCPU)
+  val cpu     = Module(new CPU(hasPipeLine = true))
   val icache  = Module(new L1Cache)
   val dcache  = Module(new L1Cache)
   val uncache = Module(new UnCache)

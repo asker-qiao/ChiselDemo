@@ -5,7 +5,12 @@ import chisel3.util._
 import config._
 
 class RedirectIO extends Bundle {
-  val target = UInt(Config.AddrBits.W)
+  val valid = Bool()
+  val target = UInt(Config.XLEN.W)
+}
+
+class UpdatePC extends Bundle {
+  val target = UInt(Config.XLEN.W)
 }
 
 class DecodeCtrlSignal() extends Bundle {
@@ -35,6 +40,7 @@ class ExuOutput extends Bundle {
   val mem_op      = MemOpType()
   val rf_wen      = Bool()
   val wb_addr     = UInt(5.W)
+  val redirect    = new RedirectIO
 }
 
 class WriteBackIO extends Bundle {
@@ -45,6 +51,7 @@ class WriteBackIO extends Bundle {
   val rf_wen      = Bool()
   val wb_addr     = UInt(5.W)
   val wb_data     = UInt(Config.XLEN.W)
+  val redirect    = new RedirectIO
 }
 
 

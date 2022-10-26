@@ -111,5 +111,5 @@ class AccessMem extends Module {
   io.out.bits.wb_addr     := io.in.bits.wb_addr
   io.out.bits.rf_wen      := io.in.bits.rf_wen
   io.out.bits.wb_data     := wb_data
-
+  io.out.bits.redirect    := io.in.bits.redirect
 }

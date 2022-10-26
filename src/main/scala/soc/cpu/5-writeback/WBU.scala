@@ -9,24 +9,32 @@ import config.Config._
   * Write Back Unit
   *
   */
-class WBU extends Module {
+class WBU(isPipeLine: Boolean = false) extends Module {
   val io = IO(new Bundle() {
     val in = Flipped(DecoupledIO(new WriteBackIO))
     val writeback = Flipped(new RegfileWriteIO)
-    val next_pc = ValidIO(new RedirectIO)
+    val update_pc = ValidIO(new UpdatePC)
     // csr
     val toCSR = ValidIO(new WBUtoCSRBundle)
-    val csrRedirect = Flipped(ValidIO(new RedirectIO))
+    val csrRedirect = Input(new RedirectIO)
   })
 
   io.in.ready := true.B
-  
+
+  // write the result of instruction into regfile
   io.writeback.addr := io.in.bits.wb_addr
   io.writeback.data := io.in.bits.wb_data
   io.writeback.wen  := io.in.valid && io.in.bits.rf_wen
 
-  io.next_pc.valid        := io.in.valid
-  io.next_pc.bits.target  := io.in.bits.pc + 4.U
+  // update pc to pointer the next instruction
+  if (!isPipeLine) {
+    io.update_pc.valid        := io.in.valid
+    io.update_pc.bits.target  := Mux(io.in.bits.redirect.valid,
+      io.in.bits.redirect.target, io.in.bits.pc + 4.U)
+  } else {
+    io.update_pc.valid        := io.in.bits.redirect.valid
+    io.update_pc.bits.target  := io.in.bits.redirect.target
+  }
 
   io.toCSR.valid := false.B
   io.toCSR.bits.pc := io.in.bits.pc

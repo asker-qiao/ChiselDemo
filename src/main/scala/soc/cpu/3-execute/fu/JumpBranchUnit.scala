@@ -44,6 +44,6 @@ class JumpBranchUnit extends FunctionUnit(hasRedirect = true) with PcOffsetIO {
   io.out.bits.data := snpc
 
   io.redirect.valid := io.in.valid && taken
-  io.redirect.bits.target := Mux(isJump, jmp_target, br_target)
+  io.redirect.target := Mux(isJump, jmp_target, br_target)
 
 }

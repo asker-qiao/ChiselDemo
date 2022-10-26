@@ -20,7 +20,7 @@ abstract class FunctionUnit(
   val io = IO(new Bundle() {
     val in = Flipped(DecoupledIO(new FuInputIO))
     val out = DecoupledIO(new FuOutputIO)
-    val redirect = if (hasRedirect) ValidIO(new RedirectIO) else null
+    val redirect = if (hasRedirect) Output(new RedirectIO) else null
   })
 
 }

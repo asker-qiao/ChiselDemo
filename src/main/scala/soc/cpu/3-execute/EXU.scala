@@ -11,7 +11,6 @@ class EXU extends Module {
   val io = IO(new Bundle() {
     val in = Flipped(DecoupledIO(new DecodeCtrlSignal))
     val out = DecoupledIO(new ExuOutput)
-    val redirect = ValidIO(new RedirectIO)
   })
 
   val (op1_data, op2_data, fu_type, fu_func) = (io.in.bits.op1_data,
@@ -44,9 +43,6 @@ class EXU extends Module {
 
 
   val exe_result = Mux(isALU, alu.io.out.bits.data, jbu.io.out.bits.data)
-  
-  // redirect
-  io.redirect <> jbu.io.redirect
 
   // output to next stage
   io.out.valid           := io.in.valid
@@ -60,5 +56,6 @@ class EXU extends Module {
   io.out.bits.mem_op     := io.in.bits.mem_op
   io.out.bits.rf_wen     := io.in.bits.rf_wen
   io.out.bits.wb_addr    := io.in.bits.wb_addr
-
+  // redirect
+  io.out.bits.redirect   := jbu.io.redirect
 }

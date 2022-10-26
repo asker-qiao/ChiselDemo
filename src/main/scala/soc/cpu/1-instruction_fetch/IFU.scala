@@ -13,27 +13,42 @@ class FetchInstrInfo extends Bundle {
 
 /**
  * Instruction Fetch Unit
+ * This module is responsible for fetching instructions and sending them to the decode unit
  */
-class IFU extends Module {
+class IFU(isPipeLine: Boolean = false) extends Module {
   val io = IO(new Bundle() {
-    val out = DecoupledIO(new FetchInstrInfo)
-    val redirect = Flipped(ValidIO(new RedirectIO))
-    val next_pc = Flipped(ValidIO(new RedirectIO))
+    val out = DecoupledIO(new FetchInstrInfo) // out to next-stage, decode
+    val update_pc = Flipped(ValidIO(new UpdatePC))  // update the PC register
     val imem = new MasterCpuLinkBus
   })
 
-  // PC
+  // PC Register
   val pc = RegInit(ResetPC.U(XLEN.W))
-  val pc_next = Mux(io.redirect.valid, io.redirect.bits.target, io.next_pc.bits.target)
 
-  // update pc
-  when (io.next_pc.valid || io.redirect.valid) {
-    pc := pc_next
+  if (!isPipeLine) {  // Single Stage Processor
+    val next_pc = io.update_pc.bits.target
+    // update pc
+    when (io.update_pc.valid) {
+      pc := next_pc
+    }
+  } else {  // Five Stage Processor
+    // the BPU for branch prediction
+    val bpu = Module(new BPU)
+    bpu.io.in.valid := true.B
+    bpu.io.in.bits.pc := pc
+    val predicted_pc = bpu.io.out.bits.preTarget
+
+    val next_pc = Mux(io.update_pc.valid, io.update_pc.bits.target, predicted_pc)
+
+    // update pc
+    when (io.update_pc.valid || io.imem.req.fire) {
+      pc := next_pc
+    }
   }
 
-  // issue req reading instruction
+  // request to memory for fetching instruction
   io.imem.req.valid := !reset.asBool
-  io.imem.req.bits.addr := pc
+  io.imem.req.bits.addr := pc // pc is address of instruction
   io.imem.req.bits.id := CPUBusReqType.instr
   io.imem.req.bits.size := "b10".U
   io.imem.req.bits.cmd := CpuLinkCmd.req_read
@@ -41,6 +56,7 @@ class IFU extends Module {
   io.imem.req.bits.strb := DontCare
 
   io.imem.resp.ready := true.B
+
   // TODO: now just support 32 bits length of instruction
   val instr = Mux(pc(2).asBool, io.imem.resp.bits.data(XLEN - 1, 32), io.imem.resp.bits.data(31, 0))
   

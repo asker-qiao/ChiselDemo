@@ -199,7 +199,7 @@ class CSR extends Module {
     val intr = Input(new ClintIO)
     val read = new CSRtoDecodeBundle()
     val toMMU = Output(new CSRtoMMUBundle)
-    val redirect = ValidIO(new RedirectIO)
+    val redirect = Output(new RedirectIO)
   })
 
   val (valid, cmd, pc, rs1) = (io.wb.valid,
@@ -307,7 +307,7 @@ class CSR extends Module {
   val trapTarget = Mux(mtvecStruct.mode === 0.U, Cat(mtvecStruct.base, Fill(2, 0.U)),
     Cat(mtvecStruct.base, Fill(2, 0.U)) + mcause << 2.U)
   io.redirect.valid := hasIntrOrException || isXret
-  io.redirect.bits.target := Mux(hasIntrOrException, trapTarget, retTarget)
+  io.redirect.target := Mux(hasIntrOrException, trapTarget, retTarget)
 
   /**
    * MMU Ctrl Signals
